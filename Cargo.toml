@@ -1,0 +1,27 @@
+[package]
+name = "polymarket-hft"
+version = "0.0.1"
+edition = "2024"
+authors = ["Telepair <liys87x@gmail.com>"]
+description = "A high-frequency trading system for Polymarket with built-in API clients (Data API, CLOB, CLOB WebSocket, Gamma, RTDS) and CLI"
+repository = "https://github.com/telepair/polymarket-hft"
+license = "MIT"
+keywords = ["polymarket", "hft", "trading", "prediction-market", "algorithmic-trading"]
+categories = ["api-bindings", "asynchronous", "algorithms", "command-line-utilities"]
+readme = "README.md"
+
+[dependencies]
+reqwest = { version = "0.12", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["full"] }
+thiserror = "2.0"
+url = "2.5"
+clap = { version = "4.5", features = ["derive"] }
+
+[[bin]]
+name = "polymarket"
+path = "src/main.rs"
+
+[features]
+default = []

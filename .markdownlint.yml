@@ -1,0 +1,8 @@
+# Line length - disabled for bilingual docs
+MD013: false
+# Duplicate headings - disabled for bilingual sections
+MD024: false
+# Inline HTML - disabled for badges and enhanced formatting
+MD033: false
+# Table column style - disabled (aligned style not required)
+MD060: false
