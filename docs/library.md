@@ -8,7 +8,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-polymarket-hft = "0.1"
+polymarket-hft = "0.0.1"
 ```
 
 ## Quick Start
@@ -99,6 +99,67 @@ let client = Client::with_http_client(http_client);
 | `get_user_closed_positions(request)`                  | Get closed positions for a user     |
 | `get_user_activity(request)`                          | Get on-chain activity for a user    |
 | `get_trades(request)`                                 | Get trades for a user or markets    |
+
+## Gamma API Client
+
+```rust
+use polymarket_hft::gamma::{Client, GetMarketsRequest, GetEventsRequest};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = Client::new();
+
+    // List markets (first 5, include tags)
+    let markets = client
+        .get_markets(GetMarketsRequest {
+            limit: Some(5),
+            include_tag: Some(true),
+            ..Default::default()
+        })
+        .await?;
+    println!("Markets returned: {}", markets.len());
+
+    // List events with related tags
+    let events = client
+        .get_events(GetEventsRequest {
+            related_tags: Some(true),
+            limit: Some(5),
+            ..Default::default()
+        })
+        .await?;
+    println!("Events returned: {}", events.len());
+
+    Ok(())
+}
+```
+
+### Available Methods (Gamma)
+
+| Method                                               | Description                            |
+| ---------------------------------------------------- | -------------------------------------- |
+| `get_sports()`                                       | List sports metadata                   |
+| `get_teams(request)`                                 | List teams                             |
+| `get_tags(request)`                                  | List tags                              |
+| `get_tag_by_id(id)`                                  | Get a tag by ID                        |
+| `get_tag_by_slug(slug, include_tpl)`                 | Get a tag by slug                      |
+| `get_tag_relationships_by_tag(...)`                  | Get tag relationships by tag ID        |
+| `get_tag_relationships_by_slug(...)`                 | Get tag relationships by tag slug      |
+| `get_tags_related_to_tag(...)`                       | Get related tags for a tag ID          |
+| `get_tags_related_to_slug(...)`                      | Get related tags for a tag slug        |
+| `get_events(request)`                                | List events                            |
+| `get_event_by_id(id, include_chat, include_tpl)`     | Get an event by ID                     |
+| `get_event_by_slug(slug, include_chat, include_tpl)` | Get an event by slug                   |
+| `get_event_tags(id)`                                 | List tags for an event                 |
+| `get_markets(request)`                               | List markets                           |
+| `get_market_by_id(id, include_tag)`                  | Get a market by ID                     |
+| `get_market_by_slug(slug, include_tag)`              | Get a market by slug                   |
+| `get_market_tags(id)`                                | List tags for a market                 |
+| `get_series(request)`                                | List series                            |
+| `get_series_by_id(id, include_chat)`                 | Get a series by ID                     |
+| `get_comments(request)`                              | List comments for an entity            |
+| `get_comment_by_id(id, get_positions)`               | Get a comment by ID                    |
+| `get_comments_by_user_address(...)`                  | List comments by user address          |
+| `search(request)`                                    | Search markets, events, profiles, tags |
 
 ### Method Details
 
@@ -212,14 +273,14 @@ let trades = client.get_trades(GetTradesRequest {
 
 The SDK provides comprehensive error handling with strongly typed error variants:
 
-| Error Type       | Description                                   |
-| ---------------- | --------------------------------------------- |
-| `Http`           | HTTP request failures (from `reqwest::Error`) |
-| `Api`            | API returned an error response                |
-| `BadRequest`     | Invalid parameters or input (e.g., addresses) |
-| `Serde`          | Serialization or deserialization errors       |
-| `Url`            | URL parsing errors                            |
-| `Other`          | Generic errors with custom messages           |
+| Error Type   | Description                                   |
+| ------------ | --------------------------------------------- |
+| `Http`       | HTTP request failures (from `reqwest::Error`) |
+| `Api`        | API returned an error response                |
+| `BadRequest` | Invalid parameters or input (e.g., addresses) |
+| `Serde`      | Serialization or deserialization errors       |
+| `Url`        | URL parsing errors                            |
+| `Other`      | Generic errors with custom messages           |
 
 ### Example
 

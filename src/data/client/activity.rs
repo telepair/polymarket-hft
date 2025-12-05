@@ -1,5 +1,7 @@
 //! Activity API methods.
 
+use tracing::{instrument, trace};
+
 use crate::data::types::{Activity, GetUserActivityRequest};
 use crate::error::Result;
 
@@ -49,15 +51,18 @@ impl Client {
     ///     Ok(())
     /// }
     /// ```
+    #[instrument(skip(self, request), fields(user = %request.user), level = "trace")]
     pub async fn get_user_activity(
         &self,
         request: GetUserActivityRequest<'_>,
     ) -> Result<Vec<Activity>> {
         request.validate()?;
         let url = request.build_url(&self.base_url);
+        trace!(url = %url, method = "GET", "sending HTTP request");
         let response = self.http_client.get(url).send().await?;
         let response = self.check_response(response).await?;
         let activity: Vec<Activity> = response.json().await?;
+        trace!(count = activity.len(), "received activity records");
         Ok(activity)
     }
 }

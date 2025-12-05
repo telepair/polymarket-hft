@@ -1,5 +1,7 @@
 //! Positions API methods.
 
+use tracing::{instrument, trace};
+
 use crate::data::types::{
     ClosedPosition, GetUserClosedPositionsRequest, GetUserPositionsRequest, Position,
     UserPositionValue, validate_market_id, validate_user,
@@ -54,15 +56,18 @@ impl Client {
     ///     Ok(())
     /// }
     /// ```
+    #[instrument(skip(self, request), fields(user = %request.user), level = "trace")]
     pub async fn get_user_positions(
         &self,
         request: GetUserPositionsRequest<'_>,
     ) -> Result<Vec<Position>> {
         request.validate()?;
         let url = request.build_url(&self.base_url);
+        trace!(url = %url, method = "GET", "sending HTTP request");
         let response = self.http_client.get(url).send().await?;
         let response = self.check_response(response).await?;
         let positions: Vec<Position> = response.json().await?;
+        trace!(count = positions.len(), "received positions");
         Ok(positions)
     }
 
@@ -108,15 +113,18 @@ impl Client {
     ///     Ok(())
     /// }
     /// ```
+    #[instrument(skip(self, request), fields(user = %request.user), level = "trace")]
     pub async fn get_user_closed_positions(
         &self,
         request: GetUserClosedPositionsRequest<'_>,
     ) -> Result<Vec<ClosedPosition>> {
         request.validate()?;
         let url = request.build_url(&self.base_url);
+        trace!(url = %url, method = "GET", "sending HTTP request");
         let response = self.http_client.get(url).send().await?;
         let response = self.check_response(response).await?;
         let positions: Vec<ClosedPosition> = response.json().await?;
+        trace!(count = positions.len(), "received closed positions");
         Ok(positions)
     }
 
@@ -156,6 +164,7 @@ impl Client {
     ///     Ok(())
     /// }
     /// ```
+    #[instrument(skip(self, markets), fields(user = %user), level = "trace")]
     pub async fn get_user_portfolio_value(
         &self,
         user: &str,
@@ -179,9 +188,11 @@ impl Client {
             url.query_pairs_mut().append_pair("market", &market_value);
         }
 
+        trace!(url = %url, method = "GET", "sending HTTP request");
         let response = self.http_client.get(url).send().await?;
         let response = self.check_response(response).await?;
         let value_response: Vec<UserPositionValue> = response.json().await?;
+        trace!(count = value_response.len(), "received portfolio values");
         Ok(value_response)
     }
 }

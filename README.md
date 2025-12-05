@@ -9,7 +9,7 @@ A high-frequency trading (HFT) system for [Polymarket](https://polymarket.com) w
 ## Features
 
 - 🚀 **High Performance** - Built on Tokio for high-performance async operations
-- 📊 **Built-in APIs** - Integrated clients for Data API, CLOB, CLOB WebSocket, Gamma, and RTDS
+- 📊 **Built-in APIs** - Data API + Gamma clients available; CLOB/CLOB WebSocket/RTDS planned
 - 🔒 **Type-Safe** - Strongly typed API with comprehensive error handling
 - 🛠️ **CLI Tool** - Command-line interface for quick API access and testing
 - ⚡ **Low Latency** - Optimized for trading scenarios requiring fast execution
@@ -22,7 +22,6 @@ A high-frequency trading (HFT) system for [Polymarket](https://polymarket.com) w
 | [Library Guide](./docs/library.md)         | How to use the SDK as a Rust library  |
 | [CLI Guide](./docs/cli.md)                 | How to use the command-line interface |
 | [API Docs](https://docs.rs/polymarket-hft) | Full API documentation                |
-| [Examples](./examples)                     | Example code                          |
 
 ## Quick Start
 
@@ -50,25 +49,28 @@ cargo run -- data health
 
 # Get user's traded markets count
 cargo run -- data get-user-traded-markets -u 0x56687bf447db6ffa42ffe2204a05edaa20f55839
+
+# List latest Gamma markets
+cargo run -- gamma get-markets -l 5
 ```
 
 👉 See [CLI Guide](./docs/cli.md) for more details.
 
 ## Supported APIs
 
-| API               | Status | Description                                                                                      |
-| ----------------- | ------ | ------------------------------------------------------------------------------------------------ |
-| **Data API**      | ✅     | Health, holders, value, traded, open interest, live volume, positions, trades, activity         |
-| **CLOB**          | 🚧     | Orderbook, pricing, spreads, orders, trades                                                      |
-| **CLOB WebSocket**| 🚧     | Real-time orderbook updates, trade streams                                                       |
-| **Gamma Markets** | 🚧     | Sports, events, markets, search                                                                  |
-| **RTDS**          | 🚧     | Real-time price feeds and comments                                                               |
+| API                | Status | Description                                                                             |
+| ------------------ | ------ | --------------------------------------------------------------------------------------- |
+| **Data API**       | ✅     | Health, holders, value, traded, open interest, live volume, positions, trades, activity |
+| **Gamma Markets**  | ✅     | Sports, events, markets, tags, series, comments, search                                 |
+| **CLOB**           | 🚧     | Planned (REST)                                                                          |
+| **CLOB WebSocket** | 🚧     | Planned (real-time orderbook updates, trade streams)                                    |
+| **RTDS**           | 🚧     | Planned (real-time price feeds and comments)                                            |
 
 ## Installation
 
 ```toml
 [dependencies]
-polymarket-hft = "0.1"
+polymarket-hft = "0.0.1"
 ```
 
 ## Architecture
@@ -79,7 +81,7 @@ polymarket-hft/
 │   ├── data/          # Data API client
 │   ├── clob/          # CLOB REST API client (planned)
 │   ├── clob_ws/       # CLOB WebSocket client (planned)
-│   ├── gamma/         # Gamma Markets API client (planned)
+│   ├── gamma/         # Gamma Markets API client
 │   ├── rtds/          # RTDS streaming client (planned)
 │   ├── commands/      # CLI command implementations
 │   └── main.rs        # CLI entry point
@@ -111,7 +113,7 @@ polymarket-hft/
 1. ~~Implement Data API endpoints~~ ✅
 2. Implement CLOB REST API endpoints
 3. Implement CLOB WebSocket connectivity
-4. Implement Gamma Markets API endpoints
+4. ~~Implement Gamma Markets API endpoints~~ ✅
 5. Implement RTDS streaming
 6. Add HFT trading strategies framework
 7. Add comprehensive integration tests

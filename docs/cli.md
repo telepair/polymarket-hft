@@ -185,6 +185,8 @@ cargo run -- data get-trades [OPTIONS]
 - `--filter-amount <AMOUNT>` - Filter amount (>= 0, must be provided with filter-type)
 - `-s, --side <SIDE>` - Trade side filter (BUY or SELL)
 
+**Default:** `taker-only` defaults to `true` when omitted. Set `--taker-only false` to include maker trades.
+
 **Example:**
 
 ```bash
@@ -254,6 +256,49 @@ cargo run -- data get-event-live-volume -i <EVENT_ID>
 ```bash
 cargo run -- data get-event-live-volume -i 123
 ```
+
+---
+
+### Gamma Markets API
+
+Use the `gamma` subcommand for discovery/search metadata.
+
+#### Core listing
+
+- Sports: `cargo run -- gamma get-sports`
+- Teams: `cargo run -- gamma get-teams [-l <LIMIT>] [-o <OFFSET>] [--league <LEAGUE>] [--name <NAME>] [--abbreviation <ABBR>]`
+- Tags: `cargo run -- gamma get-tags [-l <LIMIT>] [-o <OFFSET>] [--include-template <BOOL>] [--is-carousel <BOOL>]`
+- Series: `cargo run -- gamma get-series [-l <LIMIT>] [-o <OFFSET>] [--slug <SLUG>] [--closed <BOOL>] [--recurrence <STR>]`
+- Events: `cargo run -- gamma get-events [-l <LIMIT>] [-o <OFFSET>] [--tag-id <ID>] [--exclude-tag-id <ID>] [--active <BOOL>] [--closed <BOOL>] [--related-tags <BOOL>] [--order <FIELD>] [--ascending <BOOL>]`
+- Markets: `cargo run -- gamma get-markets [-l <LIMIT>] [-o <OFFSET>] [--id <ID>...] [--slug <SLUG>...] [--tag-id <ID>] [--event-id <EVENT_ID>] [--related-tags <BOOL>] [--closed <BOOL>] [--include-tag <BOOL>]`
+
+#### Single-entity lookups
+
+- Tag by ID: `cargo run -- gamma get-tag-by-id <TAG_ID>`
+- Tag by slug: `cargo run -- gamma get-tag-by-slug <SLUG> [--include-template <BOOL>]`
+- Tag relationships: `cargo run -- gamma get-tag-relationships-by-tag <TAG_ID> [--status <STATUS>] [--omit-empty <BOOL>]`
+- Related tags by tag: `cargo run -- gamma get-tags-related-to-tag <TAG_ID> [--status <STATUS>] [--omit-empty <BOOL>]`
+- Event by ID/slug: `cargo run -- gamma get-event-by-id <ID> [--include-chat <BOOL>] [--include-template <BOOL>]`  
+  `cargo run -- gamma get-event-by-slug <SLUG> [--include-chat <BOOL>] [--include-template <BOOL>]`
+- Event tags: `cargo run -- gamma get-event-tags <EVENT_ID>`
+- Market by ID/slug: `cargo run -- gamma get-market-by-id <ID> [--include-tag <BOOL>]`  
+  `cargo run -- gamma get-market-by-slug <SLUG> [--include-tag <BOOL>]`
+- Market tags: `cargo run -- gamma get-market-tags <MARKET_ID>`
+- Series by ID: `cargo run -- gamma get-series-by-id <SERIES_ID> [--include-chat <BOOL>]`
+
+#### Comments & profiles
+
+- Comments by parent: `cargo run -- gamma get-comments --parent-entity-type Event --parent-entity-id <ID> [-l <LIMIT>] [-o <OFFSET>] [--get-positions <BOOL>] [--holders-only <BOOL>]`
+- Comment by ID: `cargo run -- gamma get-comment-by-id <ID> [--get-positions <BOOL>]`
+- Comments by user: `cargo run -- gamma get-comments-by-user-address <ADDRESS> [-l <LIMIT>] [-o <OFFSET>] [--order <ORDER>] [--ascending <BOOL>]`
+
+#### Search
+
+- Cross-entity search: `cargo run -- gamma search "<QUERY>" [--cache <BOOL>] [--events-status <STATUS>] [--events-tag <TAG>...] [--limit-per-type <N>] [--page <N>] [--optimized <BOOL>]`
+
+#### Output
+
+All commands emit JSON for downstream tooling.
 
 ## Output Format
 

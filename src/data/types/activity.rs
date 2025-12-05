@@ -275,6 +275,14 @@ impl GetUserActivityRequest<'_> {
             return Err(PolymarketError::bad_request("end must be >= 0".to_string()));
         }
 
+        if let (Some(s), Some(e)) = (self.start, self.end)
+            && s > e
+        {
+            return Err(PolymarketError::bad_request(
+                "start must be <= end".to_string(),
+            ));
+        }
+
         Ok(())
     }
 
@@ -350,5 +358,115 @@ impl GetUserActivityRequest<'_> {
         }
 
         url
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const VALID_USER: &str = "0x0123456789012345678901234567890123456789";
+    const VALID_MARKET: &str = "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917";
+
+    #[test]
+    fn validate_rejects_start_greater_than_end() {
+        let req = GetUserActivityRequest {
+            user: "0x0123456789012345678901234567890123456789",
+            start: Some(11),
+            end: Some(10),
+            ..Default::default()
+        };
+
+        let err = req.validate().unwrap_err();
+        assert!(
+            err.to_string().contains("start must be <="),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn validate_rejects_offset_over_limit() {
+        let req = GetUserActivityRequest {
+            user: VALID_USER,
+            offset: Some(10001),
+            ..Default::default()
+        };
+
+        let err = req.validate().unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("offset must be between 0 and 10000"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn validate_rejects_market_and_event_together() {
+        let markets = &[VALID_MARKET];
+        let event_ids = &[1_i64];
+        let req = GetUserActivityRequest {
+            user: VALID_USER,
+            markets: Some(markets),
+            event_ids: Some(event_ids),
+            ..Default::default()
+        };
+
+        let err = req.validate().unwrap_err();
+        assert!(
+            err.to_string().contains("mutually exclusive"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn validate_rejects_negative_start() {
+        let req = GetUserActivityRequest {
+            user: VALID_USER,
+            start: Some(-5),
+            ..Default::default()
+        };
+
+        let err = req.validate().unwrap_err();
+        assert!(err.to_string().contains("start must be >="));
+    }
+
+    #[test]
+    fn build_url_serializes_filters() {
+        let base = Url::parse("https://example.com").unwrap();
+        let markets = &[VALID_MARKET];
+        let activity_types = &[ActivityType::Trade];
+        let url = GetUserActivityRequest {
+            user: VALID_USER,
+            limit: Some(50),
+            offset: Some(5),
+            markets: Some(markets),
+            activity_types: Some(activity_types),
+            start: Some(100),
+            end: Some(200),
+            sort_by: Some(ActivitySortBy::Cash),
+            sort_direction: Some(SortDirection::Asc),
+            side: Some(TradeSide::Sell),
+            ..Default::default()
+        }
+        .build_url(&base);
+
+        let query = url.query().unwrap_or_default();
+        for expected in [
+            &format!("user={VALID_USER}"),
+            "limit=50",
+            "offset=5",
+            &format!("market={VALID_MARKET}"),
+            "type=TRADE",
+            "start=100",
+            "end=200",
+            "sortBy=CASH",
+            "sortDirection=ASC",
+            "side=SELL",
+        ] {
+            assert!(
+                query.contains(expected),
+                "missing '{expected}' in query: {query}"
+            );
+        }
     }
 }

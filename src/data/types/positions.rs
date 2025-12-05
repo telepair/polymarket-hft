@@ -562,3 +562,164 @@ impl GetUserClosedPositionsRequest<'_> {
         url
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const VALID_USER: &str = "0x0123456789012345678901234567890123456789";
+    const VALID_MARKET: &str = "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917";
+
+    #[test]
+    fn validate_rejects_negative_size_threshold() {
+        let req = GetUserPositionsRequest {
+            user: VALID_USER,
+            size_threshold: Some(-0.1),
+            ..Default::default()
+        };
+
+        let err = req.validate().unwrap_err();
+        assert!(err.to_string().contains("sizeThreshold"));
+    }
+
+    #[test]
+    fn validate_rejects_title_too_long() {
+        let long_title = "a".repeat(161);
+        let req = GetUserPositionsRequest {
+            user: VALID_USER,
+            title: Some(&long_title),
+            ..Default::default()
+        };
+
+        let err = req.validate().unwrap_err();
+        assert!(err.to_string().contains("title must be at most 160"));
+    }
+
+    #[test]
+    fn validate_rejects_limit_out_of_range() {
+        let req = GetUserPositionsRequest {
+            user: VALID_USER,
+            limit: Some(600),
+            ..Default::default()
+        };
+
+        let err = req.validate().unwrap_err();
+        assert!(err.to_string().contains("limit must be between 0 and 500"));
+    }
+
+    #[test]
+    fn validate_rejects_offset_out_of_range() {
+        let req = GetUserPositionsRequest {
+            user: VALID_USER,
+            offset: Some(10001),
+            ..Default::default()
+        };
+
+        let err = req.validate().unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("offset must be between 0 and 10000")
+        );
+    }
+
+    #[test]
+    fn build_url_includes_position_filters() {
+        let base = Url::parse("https://example.com").unwrap();
+        let markets = &[VALID_MARKET];
+        let event_ids = &[1_i64, 2_i64];
+        let url = GetUserPositionsRequest {
+            user: VALID_USER,
+            markets: Some(markets),
+            event_ids: Some(event_ids),
+            size_threshold: Some(1.5),
+            redeemable: Some(true),
+            mergeable: Some(false),
+            limit: Some(5),
+            offset: Some(2),
+            sort_by: Some(PositionSortBy::CashPnl),
+            sort_direction: Some(SortDirection::Asc),
+            title: Some("market"),
+        }
+        .build_url(&base);
+
+        let query = url.query().unwrap_or_default();
+        for expected in [
+            &format!("user={VALID_USER}"),
+            &format!("market={VALID_MARKET}"),
+            "eventId=1%2C2",
+            "sizeThreshold=1.5",
+            "redeemable=true",
+            "mergeable=false",
+            "limit=5",
+            "offset=2",
+            "sortBy=CASHPNL",
+            "sortDirection=ASC",
+            "title=market",
+        ] {
+            assert!(
+                query.contains(expected),
+                "missing '{expected}' in query: {query}"
+            );
+        }
+    }
+
+    #[test]
+    fn closed_positions_validate_rejects_title_too_long() {
+        let long_title = "a".repeat(101);
+        let req = GetUserClosedPositionsRequest {
+            user: VALID_USER,
+            title: Some(&long_title),
+            ..Default::default()
+        };
+
+        let err = req.validate().unwrap_err();
+        assert!(err.to_string().contains("title must be at most 100"));
+    }
+
+    #[test]
+    fn closed_positions_validate_rejects_limit_out_of_range() {
+        let req = GetUserClosedPositionsRequest {
+            user: VALID_USER,
+            limit: Some(51),
+            ..Default::default()
+        };
+
+        let err = req.validate().unwrap_err();
+        assert!(err.to_string().contains("limit must be between 0 and 50"));
+    }
+
+    #[test]
+    fn build_url_includes_closed_position_filters() {
+        let base = Url::parse("https://example.com").unwrap();
+        let markets = &[VALID_MARKET];
+        let event_ids = &[3_i64];
+        let url = GetUserClosedPositionsRequest {
+            user: VALID_USER,
+            markets: Some(markets),
+            title: Some("closed"),
+            event_ids: Some(event_ids),
+            limit: Some(10),
+            offset: Some(1),
+            sort_by: Some(ClosedPositionSortBy::Price),
+            sort_direction: Some(SortDirection::Asc),
+        }
+        .build_url(&base);
+
+        let query = url.query().unwrap_or_default();
+        for expected in [
+            &format!("user={VALID_USER}"),
+            &format!("market={VALID_MARKET}"),
+            "title=closed",
+            "eventId=3",
+            "limit=10",
+            "offset=1",
+            "sortBy=PRICE",
+            "sortDirection=ASC",
+        ] {
+            assert!(
+                query.contains(expected),
+                "missing '{expected}' in query: {query}"
+            );
+        }
+    }
+}

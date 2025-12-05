@@ -122,7 +122,7 @@ pub struct UserTradedMarketsCount {
 ///     Ok(())
 /// }
 /// ```
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct GetTradesRequest<'a> {
     /// Limit for results (0-10000, default: 100).
     pub limit: Option<i32>,
@@ -142,6 +142,22 @@ pub struct GetTradesRequest<'a> {
     pub user: Option<&'a str>,
     /// Trade side filter.
     pub side: Option<TradeSide>,
+}
+
+impl Default for GetTradesRequest<'_> {
+    fn default() -> Self {
+        Self {
+            limit: None,
+            offset: None,
+            taker_only: Some(true),
+            filter_type: None,
+            filter_amount: None,
+            markets: None,
+            event_ids: None,
+            user: None,
+            side: None,
+        }
+    }
 }
 
 impl GetTradesRequest<'_> {
@@ -269,5 +285,108 @@ impl GetTradesRequest<'_> {
         }
 
         url
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const VALID_USER: &str = "0x0123456789012345678901234567890123456789";
+    const VALID_MARKET: &str = "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917";
+
+    #[test]
+    fn default_sets_taker_only_true() {
+        let req = GetTradesRequest::default();
+        assert_eq!(req.taker_only, Some(true));
+    }
+
+    #[test]
+    fn build_url_includes_taker_only_by_default() {
+        let base = Url::parse("https://example.com").unwrap();
+        let url = GetTradesRequest::default().build_url(&base);
+        let query = url.query().unwrap_or_default();
+        assert!(
+            query.contains("takerOnly=true"),
+            "expected takerOnly in query, got {query}"
+        );
+    }
+
+    #[test]
+    fn validate_requires_filter_amount_with_filter_type() {
+        let req = GetTradesRequest {
+            filter_type: Some(TradeFilterType::Cash),
+            ..Default::default()
+        };
+
+        let err = req.validate().unwrap_err();
+        assert!(
+            err.to_string().contains("filterAmount"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn validate_rejects_negative_filter_amount() {
+        let req = GetTradesRequest {
+            filter_type: Some(TradeFilterType::Cash),
+            filter_amount: Some(-1.0),
+            ..Default::default()
+        };
+
+        let err = req.validate().unwrap_err();
+        assert!(err.to_string().contains(">= 0"), "unexpected error: {err}");
+    }
+
+    #[test]
+    fn validate_rejects_markets_and_event_ids_together() {
+        let markets = &[VALID_MARKET];
+        let event_ids = &[1_i64];
+        let req = GetTradesRequest {
+            markets: Some(markets),
+            event_ids: Some(event_ids),
+            ..Default::default()
+        };
+
+        let err = req.validate().unwrap_err();
+        assert!(
+            err.to_string().contains("mutually exclusive"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn build_url_includes_filters() {
+        let base = Url::parse("https://example.com").unwrap();
+        let markets = &[VALID_MARKET];
+        let url = GetTradesRequest {
+            limit: Some(5),
+            offset: Some(3),
+            taker_only: Some(true),
+            filter_type: Some(TradeFilterType::Cash),
+            filter_amount: Some(10.5),
+            markets: Some(markets),
+            user: Some(VALID_USER),
+            side: Some(TradeSide::Sell),
+            ..Default::default()
+        }
+        .build_url(&base);
+
+        let query = url.query().unwrap_or_default();
+        for expected in [
+            "limit=5",
+            "offset=3",
+            "takerOnly=true",
+            "filterType=CASH",
+            "filterAmount=10.5",
+            &format!("market={VALID_MARKET}"),
+            &format!("user={VALID_USER}"),
+            "side=SELL",
+        ] {
+            assert!(
+                query.contains(expected),
+                "missing '{expected}' in query: {query}"
+            );
+        }
     }
 }

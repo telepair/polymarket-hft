@@ -347,6 +347,10 @@ async fn test_get_market_top_holders_with_min_balance() {
 // Validation Tests (No Network Required)
 // =============================================================================
 
+#[cfg_attr(
+    target_os = "macos",
+    ignore = "reqwest native TLS unavailable in sandboxed macOS tests"
+)]
 #[tokio::test]
 async fn test_invalid_user_address() {
     let client = Client::new();
@@ -370,6 +374,10 @@ async fn test_invalid_user_address() {
     }
 }
 
+#[cfg_attr(
+    target_os = "macos",
+    ignore = "reqwest native TLS unavailable in sandboxed macOS tests"
+)]
 #[tokio::test]
 async fn test_invalid_limit() {
     let client = Client::new();
@@ -394,6 +402,38 @@ async fn test_invalid_limit() {
     }
 }
 
+#[cfg_attr(
+    target_os = "macos",
+    ignore = "reqwest native TLS unavailable in sandboxed macOS tests"
+)]
+#[tokio::test]
+async fn test_invalid_offset() {
+    let client = Client::new();
+    let result = client
+        .get_user_positions(GetUserPositionsRequest {
+            user: TEST_USER,
+            offset: Some(10001), // exceeds max of 10000
+            ..Default::default()
+        })
+        .await;
+
+    assert!(result.is_err());
+    match result.unwrap_err() {
+        PolymarketError::BadRequest(msg) => {
+            assert!(
+                msg.contains("offset"),
+                "Error should mention 'offset': {}",
+                msg
+            );
+        }
+        e => panic!("Expected BadRequest error, got: {:?}", e),
+    }
+}
+
+#[cfg_attr(
+    target_os = "macos",
+    ignore = "reqwest native TLS unavailable in sandboxed macOS tests"
+)]
 #[tokio::test]
 async fn test_invalid_market_id() {
     let client = Client::new();
@@ -413,6 +453,10 @@ async fn test_invalid_market_id() {
     }
 }
 
+#[cfg_attr(
+    target_os = "macos",
+    ignore = "reqwest native TLS unavailable in sandboxed macOS tests"
+)]
 #[tokio::test]
 async fn test_invalid_event_id() {
     let client = Client::new();
@@ -431,6 +475,10 @@ async fn test_invalid_event_id() {
     }
 }
 
+#[cfg_attr(
+    target_os = "macos",
+    ignore = "reqwest native TLS unavailable in sandboxed macOS tests"
+)]
 #[tokio::test]
 async fn test_trades_filter_type_without_amount() {
     let client = Client::new();
@@ -456,22 +504,152 @@ async fn test_trades_filter_type_without_amount() {
     }
 }
 
+#[cfg_attr(
+    target_os = "macos",
+    ignore = "reqwest native TLS unavailable in sandboxed macOS tests"
+)]
+#[tokio::test]
+async fn test_trades_negative_filter_amount() {
+    let client = Client::new();
+    let result = client
+        .get_trades(GetTradesRequest {
+            user: Some(TEST_USER),
+            filter_type: Some(TradeFilterType::Cash),
+            filter_amount: Some(-1.0),
+            ..Default::default()
+        })
+        .await;
+
+    assert!(result.is_err());
+    match result.unwrap_err() {
+        PolymarketError::BadRequest(msg) => {
+            assert!(
+                msg.contains("filterAmount"),
+                "Error should mention non-negative filterAmount: {}",
+                msg
+            );
+        }
+        e => panic!("Expected BadRequest error, got: {:?}", e),
+    }
+}
+
+#[cfg_attr(
+    target_os = "macos",
+    ignore = "reqwest native TLS unavailable in sandboxed macOS tests"
+)]
+#[tokio::test]
+async fn test_trades_limit_out_of_range() {
+    let client = Client::new();
+    let result = client
+        .get_trades(GetTradesRequest {
+            user: Some(TEST_USER),
+            limit: Some(10001), // exceeds max of 10000
+            ..Default::default()
+        })
+        .await;
+
+    assert!(result.is_err());
+    match result.unwrap_err() {
+        PolymarketError::BadRequest(msg) => {
+            assert!(
+                msg.contains("limit"),
+                "Error should mention 'limit' range: {}",
+                msg
+            );
+        }
+        e => panic!("Expected BadRequest error, got: {:?}", e),
+    }
+}
+
+#[cfg_attr(
+    target_os = "macos",
+    ignore = "reqwest native TLS unavailable in sandboxed macOS tests"
+)]
+#[tokio::test]
+async fn test_trades_market_and_event_conflict() {
+    let client = Client::new();
+    let markets = vec![TEST_MARKET];
+    let event_ids = vec![TEST_EVENT_ID];
+    let result = client
+        .get_trades(GetTradesRequest {
+            markets: Some(&markets),
+            event_ids: Some(&event_ids),
+            ..Default::default()
+        })
+        .await;
+
+    assert!(result.is_err());
+    match result.unwrap_err() {
+        PolymarketError::BadRequest(msg) => {
+            assert!(
+                msg.contains("mutually exclusive"),
+                "Error should mention mutually exclusive filters: {}",
+                msg
+            );
+        }
+        e => panic!("Expected BadRequest error, got: {:?}", e),
+    }
+}
+
+#[cfg_attr(
+    target_os = "macos",
+    ignore = "reqwest native TLS unavailable in sandboxed macOS tests"
+)]
+#[tokio::test]
+async fn test_user_activity_market_and_event_conflict() {
+    let client = Client::new();
+    let markets = vec![TEST_MARKET];
+    let event_ids = vec![TEST_EVENT_ID];
+    let result = client
+        .get_user_activity(GetUserActivityRequest {
+            user: TEST_USER,
+            markets: Some(&markets),
+            event_ids: Some(&event_ids),
+            ..Default::default()
+        })
+        .await;
+
+    assert!(result.is_err());
+    match result.unwrap_err() {
+        PolymarketError::BadRequest(msg) => {
+            assert!(
+                msg.contains("mutually exclusive"),
+                "Error should mention mutually exclusive filters: {}",
+                msg
+            );
+        }
+        e => panic!("Expected BadRequest error, got: {:?}", e),
+    }
+}
+
 // =============================================================================
 // Client Configuration Tests (No Network Required)
 // =============================================================================
 
+#[cfg_attr(
+    target_os = "macos",
+    ignore = "reqwest native TLS unavailable in sandboxed macOS tests"
+)]
 #[test]
 fn test_client_with_custom_base_url() {
     let result = Client::with_base_url("https://custom-api.example.com/");
     assert!(result.is_ok());
 }
 
+#[cfg_attr(
+    target_os = "macos",
+    ignore = "reqwest native TLS unavailable in sandboxed macOS tests"
+)]
 #[test]
 fn test_client_with_invalid_base_url() {
     let result = Client::with_base_url("not-a-valid-url");
     assert!(result.is_err());
 }
 
+#[cfg_attr(
+    target_os = "macos",
+    ignore = "reqwest native TLS unavailable in sandboxed macOS tests"
+)]
 #[test]
 fn test_client_default() {
     let client = Client::default();

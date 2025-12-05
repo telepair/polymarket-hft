@@ -1,8 +1,9 @@
 use clap::{Parser, Subcommand};
+use tracing_subscriber::EnvFilter;
 
 mod commands;
 
-use commands::data;
+use commands::{data, gamma};
 
 #[derive(Parser)]
 #[command(name = "polymarket")]
@@ -12,22 +13,49 @@ struct Cli {
     command: Commands,
 }
 
+#[allow(clippy::large_enum_variant)] // Clap subcommands hold substantial payloads; parsed once
 #[derive(Subcommand)]
 enum Commands {
     /// Data API commands
     #[command(subcommand)]
     Data(data::DataCommands),
+    /// Gamma API commands
+    #[command(subcommand)]
+    Gamma(gamma::GammaCommands),
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Initialize tracing subscriber with env-filter support
+    // Set RUST_LOG=trace to see HTTP request/response logs
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
+
     let cli = Cli::parse();
 
     match &cli.command {
         Commands::Data(data_cmd) => {
             data::handle(data_cmd).await?;
         }
+        Commands::Gamma(gamma_cmd) => {
+            gamma::handle(gamma_cmd).await?;
+        }
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_health_command() {
+        let cli = Cli::parse_from(["polymarket", "data", "health"]);
+        match cli.command {
+            Commands::Data(data::DataCommands::Health) => {}
+            _ => panic!("expected health command"),
+        }
+    }
 }

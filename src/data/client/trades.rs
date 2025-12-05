@@ -1,5 +1,7 @@
 //! Trades API methods.
 
+use tracing::{instrument, trace};
+
 use crate::data::types::{GetTradesRequest, Trade, UserTradedMarketsCount, validate_user};
 use crate::error::Result;
 
@@ -53,12 +55,15 @@ impl Client {
     ///     Ok(())
     /// }
     /// ```
+    #[instrument(skip(self, request), level = "trace")]
     pub async fn get_trades(&self, request: GetTradesRequest<'_>) -> Result<Vec<Trade>> {
         request.validate()?;
         let url = request.build_url(&self.base_url);
+        trace!(url = %url, method = "GET", "sending HTTP request");
         let response = self.http_client.get(url).send().await?;
         let response = self.check_response(response).await?;
         let trades: Vec<Trade> = response.json().await?;
+        trace!(count = trades.len(), "received trades");
         Ok(trades)
     }
 
@@ -85,15 +90,21 @@ impl Client {
     ///     Ok(())
     /// }
     /// ```
+    #[instrument(skip(self), fields(user = %user), level = "trace")]
     pub async fn get_user_traded_markets(&self, user: &str) -> Result<UserTradedMarketsCount> {
         validate_user(user)?;
 
         let mut url = self.build_url("traded");
         url.query_pairs_mut().append_pair("user", user);
 
+        trace!(url = %url, method = "GET", "sending HTTP request");
         let response = self.http_client.get(url).send().await?;
         let response = self.check_response(response).await?;
         let traded_response: UserTradedMarketsCount = response.json().await?;
+        trace!(
+            traded = traded_response.traded,
+            "received traded markets count"
+        );
         Ok(traded_response)
     }
 }

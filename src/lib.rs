@@ -1,10 +1,11 @@
-//! Polymarket Rust SDK
+//! Polymarket HFT System
 //!
-//! A comprehensive Rust SDK for interacting with Polymarket APIs.
+//! A high-frequency trading system for Polymarket with built-in API clients.
 //!
 //! # Features
 //!
 //! - **Data API**: Access market data, user information, and more.
+//! - **Gamma Markets API**: Market discovery and metadata.
 //!
 //! # Example
 //!
@@ -25,5 +26,6 @@
 
 pub mod data;
 pub mod error;
+pub mod gamma;
 
 pub use error::{PolymarketError, Result};
