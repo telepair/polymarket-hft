@@ -14,7 +14,7 @@ BINARY_NAME  := polymarket
 # PHONY Targets
 # =============================================================================
 .PHONY: all fmt lint lint-rust lint-md check test test-unit test-integration \
-        test-data test-gamma doc doc-open build release install run clean help
+        test-data test-gamma test-clob doc doc-open build release install run clean help
 
 # =============================================================================
 # Development Workflow
@@ -52,7 +52,7 @@ test-unit:                               ## Run unit tests only
 	@echo "Running unit tests..."
 	@$(CARGO) test $(CARGO_FLAGS) --all-targets --all-features
 
-test-integration: test-data test-gamma   ## Run all integration tests (requires network)
+test-integration: test-data test-gamma test-clob  ## Run all integration tests (requires network)
 
 test-data:                               ## Run Data API integration tests
 	@echo "Running Data API integration tests..."
@@ -61,6 +61,10 @@ test-data:                               ## Run Data API integration tests
 test-gamma:                              ## Run Gamma API integration tests
 	@echo "Running Gamma API integration tests..."
 	@$(CARGO) test --test gamma_api_tests -- --ignored --nocapture
+
+test-clob:                               ## Run CLOB API integration tests
+	@echo "Running CLOB API integration tests..."
+	@$(CARGO) test --test clob_api_tests -- --ignored --nocapture
 
 # =============================================================================
 # Documentation

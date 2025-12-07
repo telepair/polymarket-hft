@@ -8,13 +8,13 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-polymarket-hft = "0.0.1"
+polymarket-hft = "0.0.2"
 ```
 
 ## Quick Start
 
 ```rust
-use polymarket_hft::data::{Client, GetUserPositionsRequest};
+use polymarket_hft::client::data::{Client, GetUserPositionsRequest};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -70,7 +70,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### Creating a Client
 
 ```rust
-use polymarket_hft::data::Client;
+use polymarket_hft::client::data::Client;
 
 // Create with default settings
 let client = Client::new();
@@ -103,7 +103,7 @@ let client = Client::with_http_client(http_client);
 ## Gamma API Client
 
 ```rust
-use polymarket_hft::gamma::{Client, GetMarketsRequest, GetEventsRequest};
+use polymarket_hft::client::gamma::{Client, GetMarketsRequest, GetEventsRequest};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -161,6 +161,52 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 | `get_comments_by_user_address(...)`                  | List comments by user address          |
 | `search(request)`                                    | Search markets, events, profiles, tags |
 
+## CLOB API Client
+
+```rust
+use polymarket_hft::client::clob::{Client, Side, GetPriceHistoryRequest, PriceHistoryInterval};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = Client::new();
+
+    // Get order book for a token
+    let order_book = client.get_order_book("token_id").await?;
+    println!("Bids: {}, Asks: {}", order_book.bids.len(), order_book.asks.len());
+
+    // Get market price
+    let price = client.get_market_price("token_id", Side::Buy).await?;
+    println!("Price: {}", price.price);
+
+    // Get midpoint price
+    let midpoint = client.get_midpoint_price("token_id").await?;
+    println!("Midpoint: {}", midpoint.mid);
+
+    // Get price history
+    let history = client.get_price_history(GetPriceHistoryRequest {
+        market: "token_id",
+        interval: Some(PriceHistoryInterval::OneDay),
+        ..Default::default()
+    }).await?;
+    println!("History points: {}", history.history.len());
+
+    Ok(())
+}
+```
+
+### Available Methods (CLOB)
+
+| Method                                   | Description                              |
+| ---------------------------------------- | ---------------------------------------- |
+| `get_order_book(token_id)`               | Get order book for a token               |
+| `get_order_books(request)`               | Get order books for multiple tokens      |
+| `get_market_price(token_id, side)`       | Get market price for a token and side    |
+| `get_market_prices()`                    | Get all market prices                    |
+| `get_market_prices_by_request(request)`  | Get prices for specified tokens/sides    |
+| `get_midpoint_price(token_id)`           | Get midpoint price for a token           |
+| `get_price_history(request)`             | Get price history for a token            |
+| `get_spreads(request)`                   | Get bid-ask spreads for tokens           |
+
 ### Method Details
 
 #### `get_user_positions`
@@ -168,7 +214,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 Get current positions for a user with various filter and sort options.
 
 ```rust
-use polymarket_hft::data::{Client, GetUserPositionsRequest, PositionSortBy, SortDirection};
+use polymarket_hft::client::data::{Client, GetUserPositionsRequest, PositionSortBy, SortDirection};
 
 // Get all positions for a user
 let positions = client.get_user_positions(GetUserPositionsRequest {
@@ -195,7 +241,7 @@ let positions = client.get_user_positions(GetUserPositionsRequest {
 Get closed positions for a user.
 
 ```rust
-use polymarket_hft::data::{Client, GetUserClosedPositionsRequest, ClosedPositionSortBy, SortDirection};
+use polymarket_hft::client::data::{Client, GetUserClosedPositionsRequest, ClosedPositionSortBy, SortDirection};
 
 // Get all closed positions for a user
 let positions = client.get_user_closed_positions(GetUserClosedPositionsRequest {
@@ -219,7 +265,7 @@ let positions = client.get_user_closed_positions(GetUserClosedPositionsRequest {
 Get on-chain activity for a user.
 
 ```rust
-use polymarket_hft::data::{Client, GetUserActivityRequest, ActivityType, ActivitySortBy, SortDirection, TradeSide};
+use polymarket_hft::client::data::{Client, GetUserActivityRequest, ActivityType, ActivitySortBy, SortDirection, TradeSide};
 
 // Get all activity for a user
 let activity = client.get_user_activity(GetUserActivityRequest {
@@ -245,7 +291,7 @@ let activity = client.get_user_activity(GetUserActivityRequest {
 Get trades for a user or markets.
 
 ```rust
-use polymarket_hft::data::{Client, GetTradesRequest, TradeSide, TradeFilterType};
+use polymarket_hft::client::data::{Client, GetTradesRequest, TradeSide, TradeFilterType};
 
 // Get trades for a user
 let trades = client.get_trades(GetTradesRequest {
@@ -285,7 +331,7 @@ The SDK provides comprehensive error handling with strongly typed error variants
 ### Example
 
 ```rust
-use polymarket_hft::data::Client;
+use polymarket_hft::client::data::Client;
 use polymarket_hft::error::PolymarketError;
 
 async fn example() {

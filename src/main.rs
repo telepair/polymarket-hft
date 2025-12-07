@@ -1,9 +1,9 @@
 use clap::{Parser, Subcommand};
 use tracing_subscriber::EnvFilter;
 
-mod commands;
+mod cli;
 
-use commands::{data, gamma};
+use cli::{clob, data, gamma};
 
 #[derive(Parser)]
 #[command(name = "polymarket")]
@@ -16,6 +16,9 @@ struct Cli {
 #[allow(clippy::large_enum_variant)] // Clap subcommands hold substantial payloads; parsed once
 #[derive(Subcommand)]
 enum Commands {
+    /// CLOB API commands
+    #[command(subcommand)]
+    Clob(clob::ClobCommands),
     /// Data API commands
     #[command(subcommand)]
     Data(data::DataCommands),
@@ -25,7 +28,7 @@ enum Commands {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> anyhow::Result<()> {
     // Initialize tracing subscriber with env-filter support
     // Set RUST_LOG=trace to see HTTP request/response logs
     tracing_subscriber::fmt()
@@ -35,6 +38,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
     match &cli.command {
+        Commands::Clob(clob_cmd) => {
+            clob::handle(clob_cmd).await?;
+        }
         Commands::Data(data_cmd) => {
             data::handle(data_cmd).await?;
         }

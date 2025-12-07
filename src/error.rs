@@ -58,3 +58,70 @@ impl PolymarketError {
         Self::Other(msg.into())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_websocket_error_creation() {
+        let err = PolymarketError::websocket("connection failed");
+        assert!(matches!(err, PolymarketError::WebSocket(_)));
+        assert!(err.to_string().contains("connection failed"));
+    }
+
+    #[test]
+    fn test_api_error_creation() {
+        let err = PolymarketError::api("rate limited");
+        assert!(matches!(err, PolymarketError::Api(_)));
+        assert!(err.to_string().contains("rate limited"));
+    }
+
+    #[test]
+    fn test_bad_request_error_creation() {
+        let err = PolymarketError::bad_request("invalid parameter");
+        assert!(matches!(err, PolymarketError::BadRequest(_)));
+        assert!(err.to_string().contains("invalid parameter"));
+    }
+
+    #[test]
+    fn test_other_error_creation() {
+        let err = PolymarketError::other("something went wrong");
+        assert!(matches!(err, PolymarketError::Other(_)));
+        assert_eq!(err.to_string(), "something went wrong");
+    }
+
+    #[test]
+    fn test_display_websocket() {
+        let err = PolymarketError::WebSocket("test".to_string());
+        assert_eq!(err.to_string(), "WebSocket error: test");
+    }
+
+    #[test]
+    fn test_display_api() {
+        let err = PolymarketError::Api("test".to_string());
+        assert_eq!(err.to_string(), "API error: test");
+    }
+
+    #[test]
+    fn test_display_bad_request() {
+        let err = PolymarketError::BadRequest("test".to_string());
+        assert_eq!(err.to_string(), "Bad request: test");
+    }
+
+    #[test]
+    fn test_from_url_parse_error() {
+        let url_err = url::Url::parse("not a url").unwrap_err();
+        let err: PolymarketError = url_err.into();
+        assert!(matches!(err, PolymarketError::Url(_)));
+        assert!(err.to_string().contains("URL parsing error"));
+    }
+
+    #[test]
+    fn test_from_serde_error() {
+        let json_err = serde_json::from_str::<String>("not valid json").unwrap_err();
+        let err: PolymarketError = json_err.into();
+        assert!(matches!(err, PolymarketError::Serde(_)));
+        assert!(err.to_string().contains("Serialization error"));
+    }
+}

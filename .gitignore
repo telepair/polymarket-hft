@@ -1,6 +1,5 @@
 # Rust
 /target
-Cargo.lock
 
 # IDE
 .vscode/
@@ -16,3 +15,6 @@ Thumbs.db
 # Test coverage
 *.profraw
 *.profdata
+
+# Claude
+.claude/

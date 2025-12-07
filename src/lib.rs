@@ -6,11 +6,12 @@
 //!
 //! - **Data API**: Access market data, user information, and more.
 //! - **Gamma Markets API**: Market discovery and metadata.
+//! - **CLOB API**: Central Limit Order Book for pricing and order books.
 //!
 //! # Example
 //!
 //! ```no_run
-//! use polymarket_hft::data::Client;
+//! use polymarket_hft::client::data::Client;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -24,8 +25,7 @@
 //! }
 //! ```
 
-pub mod data;
+pub mod client;
 pub mod error;
-pub mod gamma;
 
 pub use error::{PolymarketError, Result};

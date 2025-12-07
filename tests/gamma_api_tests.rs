@@ -4,7 +4,7 @@
 //! Run them with: `cargo test --test gamma_api_tests -- --ignored --nocapture`
 
 use polymarket_hft::PolymarketError;
-use polymarket_hft::gamma::{
+use polymarket_hft::client::gamma::{
     Client, GetCommentsByUserAddressRequest, GetCommentsRequest, GetEventsRequest,
     GetMarketsRequest, GetSeriesRequest, GetTagsRequest, GetTeamsRequest, SearchRequest,
 };

@@ -28,7 +28,7 @@ A high-frequency trading (HFT) system for [Polymarket](https://polymarket.com) w
 ### As a Library
 
 ```rust
-use polymarket_hft::data::Client;
+use polymarket_hft::client::data::Client;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -70,7 +70,7 @@ cargo run -- gamma get-markets -l 5
 
 ```toml
 [dependencies]
-polymarket-hft = "0.0.1"
+polymarket-hft = "0.0.2"
 ```
 
 ## Architecture
@@ -78,13 +78,12 @@ polymarket-hft = "0.0.1"
 ```text
 polymarket-hft/
 ├── src/
-│   ├── data/          # Data API client
-│   ├── clob/          # CLOB REST API client (planned)
-│   ├── clob_ws/       # CLOB WebSocket client (planned)
-│   ├── gamma/         # Gamma Markets API client
-│   ├── rtds/          # RTDS streaming client (planned)
-│   ├── commands/      # CLI command implementations
-│   └── main.rs        # CLI entry point
+│   ├── client/
+│   │   ├── data/       # Data API client
+│   │   ├── clob/       # CLOB REST API client
+│   │   └── gamma/      # Gamma Markets API client
+│   ├── cli/            # CLI command implementations
+│   └── main.rs         # CLI entry point
 ```
 
 ## Development Status

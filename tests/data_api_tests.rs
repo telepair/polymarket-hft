@@ -4,7 +4,7 @@
 //! Run them with: `cargo test --test data_api_tests -- --ignored --nocapture`
 
 use polymarket_hft::PolymarketError;
-use polymarket_hft::data::{
+use polymarket_hft::client::data::{
     ActivitySortBy, ActivityType, Client, ClosedPositionSortBy, GetTradesRequest,
     GetUserActivityRequest, GetUserClosedPositionsRequest, GetUserPositionsRequest, PositionSortBy,
     SortDirection, TradeFilterType, TradeSide,
