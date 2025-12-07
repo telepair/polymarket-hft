@@ -1,6 +1,6 @@
 [package]
 name = "polymarket-hft"
-version = "0.0.2"
+version = "0.0.3"
 edition = "2024"
 authors = ["Telepair <liys87x@gmail.com>"]
 description = "A high-frequency trading system for Polymarket with built-in API clients (Data API, CLOB, CLOB WebSocket, Gamma, RTDS) and CLI"
@@ -12,6 +12,8 @@ readme = "README.md"
 
 [dependencies]
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+reqwest-middleware = { version = "0.4", features = ["json"] }
+reqwest-retry = "0.7"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1", features = ["full"] }

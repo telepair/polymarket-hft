@@ -8,7 +8,7 @@ use crate::error::{PolymarketError, Result};
 
 use super::Client;
 use super::events::{Category, Collection, EventChat};
-use super::helpers::{deserialize_option_f64, deserialize_option_u64};
+use super::helpers::{deserialize_option_f64, deserialize_option_i64, deserialize_option_u64};
 use super::tags::Tag;
 
 // Forward declaration
@@ -65,12 +65,13 @@ pub struct Series {
     pub pyth_token_id: Option<String>,
     #[serde(alias = "cgAssetName")]
     pub cg_asset_name: Option<String>,
-    #[serde(default, deserialize_with = "deserialize_option_u64")]
-    pub score: Option<u64>,
+    #[serde(default, deserialize_with = "deserialize_option_i64")]
+    pub score: Option<i64>,
     pub events: Option<Vec<Event>>,
     pub collections: Option<Vec<Collection>>,
     pub categories: Option<Vec<Category>>,
     pub tags: Option<Vec<Tag>>,
+    #[serde(default, deserialize_with = "deserialize_option_u64")]
     pub comment_count: Option<u64>,
     pub chats: Option<Vec<EventChat>>,
 }

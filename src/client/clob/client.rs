@@ -1,36 +1,24 @@
 //! CLOB API client implementation.
 
-use std::time::Duration;
-
 use reqwest::{Client as HttpClient, Response};
+use reqwest_middleware::ClientWithMiddleware;
 use tracing::trace;
 use url::Url;
 
+use crate::client::http::{DEFAULT_MAX_RETRIES, HttpClientConfig, wrap_with_retry};
 use crate::error::{PolymarketError, Result};
 
 /// Default base URL for the Polymarket CLOB API.
 pub const DEFAULT_BASE_URL: &str = "https://clob.polymarket.com";
 
-/// Default request timeout in seconds.
-const DEFAULT_TIMEOUT_SECS: u64 = 30;
-
-/// Default connection timeout in seconds.
-const DEFAULT_CONNECT_TIMEOUT_SECS: u64 = 10;
-
 /// Maximum error message length to prevent sensitive data leakage.
 const MAX_ERROR_MESSAGE_LEN: usize = 500;
-
-/// Default maximum idle connections per host.
-const DEFAULT_POOL_MAX_IDLE_PER_HOST: usize = 10;
-
-/// Default idle timeout in seconds.
-const DEFAULT_POOL_IDLE_TIMEOUT_SECS: u64 = 90;
 
 /// Client for interacting with the Polymarket CLOB API.
 #[derive(Debug, Clone)]
 pub struct Client {
-    /// HTTP client for making requests.
-    pub(super) http_client: HttpClient,
+    /// HTTP client with retry middleware.
+    pub(super) http_client: ClientWithMiddleware,
     /// Base URL for the API (validated URL).
     pub(super) base_url: Url,
 }
@@ -68,11 +56,29 @@ impl Client {
     /// ```
     pub fn with_base_url(base_url: &str) -> Result<Self> {
         let url = Url::parse(base_url)?;
-        let http_client = HttpClient::builder()
-            .timeout(Duration::from_secs(DEFAULT_TIMEOUT_SECS))
-            .connect_timeout(Duration::from_secs(DEFAULT_CONNECT_TIMEOUT_SECS))
-            .pool_max_idle_per_host(DEFAULT_POOL_MAX_IDLE_PER_HOST)
-            .pool_idle_timeout(Duration::from_secs(DEFAULT_POOL_IDLE_TIMEOUT_SECS))
+        let http_client = HttpClientConfig::default()
+            .build()
+            .map_err(|e| PolymarketError::other(format!("failed to create HTTP client: {}", e)))?;
+        Ok(Self {
+            http_client,
+            base_url: url,
+        })
+    }
+
+    /// Creates a new CLOB API client with a custom base URL and retry configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `base_url` - The base URL for the API.
+    /// * `max_retries` - Maximum number of retry attempts for transient failures.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(Client)` if the URL is valid, or an error if parsing fails.
+    pub fn with_retries(base_url: &str, max_retries: u32) -> Result<Self> {
+        let url = Url::parse(base_url)?;
+        let http_client = HttpClientConfig::default()
+            .with_max_retries(max_retries)
             .build()
             .map_err(|e| PolymarketError::other(format!("failed to create HTTP client: {}", e)))?;
         Ok(Self {
@@ -82,6 +88,8 @@ impl Client {
     }
 
     /// Creates a new CLOB API client with an existing HTTP client.
+    ///
+    /// The provided client will be wrapped with retry middleware using default settings.
     ///
     /// # Arguments
     ///
@@ -101,6 +109,18 @@ impl Client {
     /// let client = Client::with_http_client(http_client);
     /// ```
     pub fn with_http_client(http_client: HttpClient) -> Self {
+        Self {
+            http_client: wrap_with_retry(http_client, DEFAULT_MAX_RETRIES),
+            base_url: Url::parse(DEFAULT_BASE_URL).expect("default CLOB base URL is valid"),
+        }
+    }
+
+    /// Creates a new CLOB API client with an existing middleware-enabled HTTP client.
+    ///
+    /// # Arguments
+    ///
+    /// * `http_client` - An existing reqwest-middleware HTTP client.
+    pub fn with_middleware_client(http_client: ClientWithMiddleware) -> Self {
         Self {
             http_client,
             base_url: Url::parse(DEFAULT_BASE_URL).expect("default CLOB base URL is valid"),
@@ -141,10 +161,20 @@ impl Client {
         Err(PolymarketError::api(error_msg))
     }
 
-    /// Builds a URL for the given path.
+    /// Builds a URL for the given path, preserving any base path prefix.
     pub(super) fn build_url(&self, path: &str) -> Url {
         let mut url = self.base_url.clone();
-        url.set_path(path);
+
+        let base_path = url.path().trim_end_matches('/');
+        let suffix = path.trim_start_matches('/');
+
+        let merged = if base_path.is_empty() {
+            format!("/{}", suffix)
+        } else {
+            format!("{}/{}", base_path, suffix)
+        };
+
+        url.set_path(&merged);
         url
     }
 }
@@ -177,6 +207,13 @@ mod tests {
     fn test_client_with_custom_url() {
         let client = Client::with_base_url("https://example.com/").unwrap();
         assert_eq!(client.base_url.as_str(), "https://example.com/");
+    }
+
+    #[test]
+    fn test_build_url_preserves_base_path_prefix() {
+        let client = Client::with_base_url("https://example.com/api/v1").unwrap();
+        let url = client.build_url("book");
+        assert_eq!(url.as_str(), "https://example.com/api/v1/book");
     }
 
     #[cfg_attr(

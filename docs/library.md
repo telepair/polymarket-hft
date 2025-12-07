@@ -8,7 +8,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-polymarket-hft = "0.0.2"
+polymarket-hft = "0.0.3"
 ```
 
 ## Quick Start
@@ -72,18 +72,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```rust
 use polymarket_hft::client::data::Client;
 
-// Create with default settings
+// Create with default settings (includes automatic retry with exponential backoff)
 let client = Client::new();
 
 // Create with custom base URL
 let client = Client::with_base_url("https://custom-api.example.com")?;
 
-// Create with custom HTTP client
+// Create with custom retry configuration (5 retries instead of default 3)
+let client = Client::with_retries("https://data-api.polymarket.com", 5)?;
+
+// Create with custom HTTP client (will be wrapped with default retry middleware)
 let http_client = reqwest::Client::builder()
     .timeout(std::time::Duration::from_secs(30))
     .build()?;
 let client = Client::with_http_client(http_client);
 ```
+
+### Retry Behavior
+
+All API clients include automatic retry with exponential backoff for transient failures:
+
+- **Default retries**: 3 attempts
+- **Retried errors**: Connection errors, timeouts, 5xx server errors
+- **Not retried**: 4xx client errors (bad request, not found, etc.)
+
+You can customize the retry count using `with_retries()` method on any client.
 
 ### Available Methods
 
@@ -196,16 +209,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### Available Methods (CLOB)
 
-| Method                                   | Description                              |
-| ---------------------------------------- | ---------------------------------------- |
-| `get_order_book(token_id)`               | Get order book for a token               |
-| `get_order_books(request)`               | Get order books for multiple tokens      |
-| `get_market_price(token_id, side)`       | Get market price for a token and side    |
-| `get_market_prices()`                    | Get all market prices                    |
-| `get_market_prices_by_request(request)`  | Get prices for specified tokens/sides    |
-| `get_midpoint_price(token_id)`           | Get midpoint price for a token           |
-| `get_price_history(request)`             | Get price history for a token            |
-| `get_spreads(request)`                   | Get bid-ask spreads for tokens           |
+| Method                                  | Description                           |
+| --------------------------------------- | ------------------------------------- |
+| `get_order_book(token_id)`              | Get order book for a token            |
+| `get_order_books(request)`              | Get order books for multiple tokens   |
+| `get_market_price(token_id, side)`      | Get market price for a token and side |
+| `get_market_prices()`                   | Get all market prices                 |
+| `get_market_prices_by_request(request)` | Get prices for specified tokens/sides |
+| `get_midpoint_price(token_id)`          | Get midpoint price for a token        |
+| `get_price_history(request)`            | Get price history for a token         |
+| `get_spreads(request)`                  | Get bid-ask spreads for tokens        |
 
 ### Method Details
 

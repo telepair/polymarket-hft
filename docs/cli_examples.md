@@ -174,8 +174,7 @@ polymarket clob get-price-history \
   -i 1d
 ```
 
-> [!WARNING]
-> `polymarket clob get-market-prices` may return 400 error - this is a known API limitation.
+> [!WARNING] > `polymarket clob get-market-prices` may return 400 error - this is a known API limitation.
 
 ### Spreads
 
@@ -189,34 +188,34 @@ polymarket clob get-spreads \
 
 ## Quick Reference
 
-| API   | Command                     | Required Args                          |
-| ----- | --------------------------- | -------------------------------------- |
-| Data  | health                      | -                                      |
-| Data  | get-user-positions          | `-u <ADDRESS>`                         |
-| Data  | get-user-closed-positions   | `-u <ADDRESS>`                         |
-| Data  | get-user-portfolio-value    | `-u <ADDRESS>`                         |
-| Data  | get-user-traded-markets     | `-u <ADDRESS>`                         |
-| Data  | get-user-activity           | `-u <ADDRESS>`                         |
-| Data  | get-trades                  | (optional filters)                     |
-| Data  | get-market-top-holders      | `-m <MARKET_ID>`                       |
-| Data  | get-open-interest           | `-m <MARKET_ID>`                       |
-| Data  | get-event-live-volume       | `-i <EVENT_ID>`                        |
-| Gamma | get-sports                  | -                                      |
-| Gamma | get-teams                   | (optional filters)                     |
-| Gamma | get-tags                    | (optional filters)                     |
-| Gamma | get-series                  | (optional filters)                     |
-| Gamma | get-events                  | (optional filters)                     |
-| Gamma | get-markets                 | (optional filters)                     |
-| Gamma | get-tag-by-id               | `<TAG_ID>`                             |
-| Gamma | get-tag-by-slug             | `<SLUG>`                               |
-| Gamma | get-event-by-id             | `<EVENT_ID>`                           |
-| Gamma | get-event-by-slug           | `<SLUG>`                               |
-| Gamma | get-market-by-id            | `<MARKET_ID>`                          |
-| Gamma | get-market-by-slug          | `<SLUG>`                               |
-| Gamma | search                      | `"<QUERY>"`                            |
-| CLOB  | get-order-book              | `-t <TOKEN_ID>`                        |
-| CLOB  | get-order-books             | `-t <TOKEN_ID>` (multiple)             |
-| CLOB  | get-market-price            | `-t <TOKEN_ID> -s <SIDE>`              |
-| CLOB  | get-midpoint-price          | `-t <TOKEN_ID>`                        |
-| CLOB  | get-price-history           | `-m <TOKEN_ID>`                        |
-| CLOB  | get-spreads                 | `-t <TOKEN_ID>` (multiple)             |
+| API   | Command                   | Required Args              |
+| ----- | ------------------------- | -------------------------- |
+| Data  | health                    | -                          |
+| Data  | get-user-positions        | `-u <ADDRESS>`             |
+| Data  | get-user-closed-positions | `-u <ADDRESS>`             |
+| Data  | get-user-portfolio-value  | `-u <ADDRESS>`             |
+| Data  | get-user-traded-markets   | `-u <ADDRESS>`             |
+| Data  | get-user-activity         | `-u <ADDRESS>`             |
+| Data  | get-trades                | (optional filters)         |
+| Data  | get-market-top-holders    | `-m <MARKET_ID>`           |
+| Data  | get-open-interest         | `-m <MARKET_ID>`           |
+| Data  | get-event-live-volume     | `-i <EVENT_ID>`            |
+| Gamma | get-sports                | -                          |
+| Gamma | get-teams                 | (optional filters)         |
+| Gamma | get-tags                  | (optional filters)         |
+| Gamma | get-series                | (optional filters)         |
+| Gamma | get-events                | (optional filters)         |
+| Gamma | get-markets               | (optional filters)         |
+| Gamma | get-tag-by-id             | `<TAG_ID>`                 |
+| Gamma | get-tag-by-slug           | `<SLUG>`                   |
+| Gamma | get-event-by-id           | `<EVENT_ID>`               |
+| Gamma | get-event-by-slug         | `<SLUG>`                   |
+| Gamma | get-market-by-id          | `<MARKET_ID>`              |
+| Gamma | get-market-by-slug        | `<SLUG>`                   |
+| Gamma | search                    | `"<QUERY>"`                |
+| CLOB  | get-order-book            | `-t <TOKEN_ID>`            |
+| CLOB  | get-order-books           | `-t <TOKEN_ID>` (multiple) |
+| CLOB  | get-market-price          | `-t <TOKEN_ID> -s <SIDE>`  |
+| CLOB  | get-midpoint-price        | `-t <TOKEN_ID>`            |
+| CLOB  | get-price-history         | `-m <TOKEN_ID>`            |
+| CLOB  | get-spreads               | `-t <TOKEN_ID>` (multiple) |

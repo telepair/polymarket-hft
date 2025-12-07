@@ -37,14 +37,38 @@ where
 }
 
 /// Deserializes a field that may be a number, string, or null into `Option<u64>`.
+/// Returns `None` for negative numbers instead of failing.
 pub fn deserialize_option_u64<'de, D>(deserializer: D) -> std::result::Result<Option<u64>, D::Error>
 where
     D: Deserializer<'de>,
 {
     match Option::<Value>::deserialize(deserializer)? {
+        Some(Value::Number(num)) => Ok(num.as_u64()),
+        Some(Value::String(s)) => {
+            let trimmed = s.trim();
+            if trimmed.is_empty() {
+                Ok(None)
+            } else {
+                // Return None for negative numbers or invalid strings
+                Ok(trimmed.parse::<u64>().ok())
+            }
+        }
+        Some(Value::Bool(b)) => Ok(Some(if b { 1 } else { 0 })),
+        Some(Value::Null) => Ok(None),
+        None => Ok(None),
+        _ => Ok(None),
+    }
+}
+
+/// Deserializes a field that may be a number, string, or null into `Option<i64>`.
+pub fn deserialize_option_i64<'de, D>(deserializer: D) -> std::result::Result<Option<i64>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    match Option::<Value>::deserialize(deserializer)? {
         Some(Value::Number(num)) => num
-            .as_u64()
-            .ok_or_else(|| DeError::custom("expected u64-compatible number"))
+            .as_i64()
+            .ok_or_else(|| DeError::custom("expected i64-compatible number"))
             .map(Some),
         Some(Value::String(s)) => {
             let trimmed = s.trim();
@@ -52,7 +76,7 @@ where
                 Ok(None)
             } else {
                 trimmed
-                    .parse::<u64>()
+                    .parse::<i64>()
                     .map(Some)
                     .map_err(|e| DeError::custom(format!("invalid integer string: {}", e)))
             }

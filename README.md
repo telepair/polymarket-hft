@@ -11,6 +11,7 @@ A high-frequency trading (HFT) system for [Polymarket](https://polymarket.com) w
 - 🚀 **High Performance** - Built on Tokio for high-performance async operations
 - 📊 **Built-in APIs** - Data API + Gamma clients available; CLOB/CLOB WebSocket/RTDS planned
 - 🔒 **Type-Safe** - Strongly typed API with comprehensive error handling
+- 🔄 **Auto Retry** - Built-in exponential backoff retry for transient failures
 - 🛠️ **CLI Tool** - Command-line interface for quick API access and testing
 - ⚡ **Low Latency** - Optimized for trading scenarios requiring fast execution
 - 📚 **Well-Documented** - Extensive documentation and examples
@@ -62,7 +63,7 @@ cargo run -- gamma get-markets -l 5
 | ------------------ | ------ | --------------------------------------------------------------------------------------- |
 | **Data API**       | ✅     | Health, holders, value, traded, open interest, live volume, positions, trades, activity |
 | **Gamma Markets**  | ✅     | Sports, events, markets, tags, series, comments, search                                 |
-| **CLOB**           | 🚧     | Planned (REST)                                                                          |
+| **CLOB**           | 🚧     | Public REST endpoints available; private/WS pending                                     |
 | **CLOB WebSocket** | 🚧     | Planned (real-time orderbook updates, trade streams)                                    |
 | **RTDS**           | 🚧     | Planned (real-time price feeds and comments)                                            |
 
@@ -70,7 +71,7 @@ cargo run -- gamma get-markets -l 5
 
 ```toml
 [dependencies]
-polymarket-hft = "0.0.2"
+polymarket-hft = "0.0.3"
 ```
 
 ## Architecture
@@ -81,7 +82,8 @@ polymarket-hft/
 │   ├── client/
 │   │   ├── data/       # Data API client
 │   │   ├── clob/       # CLOB REST API client
-│   │   └── gamma/      # Gamma Markets API client
+│   │   ├── gamma/      # Gamma Markets API client
+│   │   └── http.rs     # Shared HTTP client with retry middleware
 │   ├── cli/            # CLI command implementations
 │   └── main.rs         # CLI entry point
 ```

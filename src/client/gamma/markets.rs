@@ -8,7 +8,9 @@ use crate::error::{PolymarketError, Result};
 
 use super::Client;
 use super::events::{Category, Collection, Event, OptimizedImage};
-use super::helpers::{deserialize_option_f64, deserialize_option_u64, validate_tag_id};
+use super::helpers::{
+    deserialize_option_f64, deserialize_option_i64, deserialize_option_u64, validate_tag_id,
+};
 use super::tags::Tag;
 
 /// Market representation from the Gamma API.
@@ -279,8 +281,8 @@ pub struct Market {
     pub accepting_orders: Option<bool>,
     #[serde(alias = "notificationsEnabled")]
     pub notifications_enabled: Option<bool>,
-    #[serde(default, deserialize_with = "deserialize_option_u64")]
-    pub score: Option<u64>,
+    #[serde(default, deserialize_with = "deserialize_option_i64")]
+    pub score: Option<i64>,
     #[serde(alias = "imageOptimized")]
     pub image_optimized: Option<OptimizedImage>,
     #[serde(alias = "iconOptimized")]

@@ -9,6 +9,10 @@ pub enum PolymarketError {
     #[error("HTTP request failed: {0}")]
     Http(#[from] reqwest::Error),
 
+    /// HTTP middleware request failed.
+    #[error("HTTP request failed: {0}")]
+    HttpMiddleware(#[from] reqwest_middleware::Error),
+
     /// WebSocket connection or communication error.
     #[error("WebSocket error: {0}")]
     WebSocket(String),
