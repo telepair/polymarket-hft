@@ -9,7 +9,8 @@ A high-frequency trading (HFT) system for [Polymarket](https://polymarket.com) w
 ## Features
 
 - 🚀 **High Performance** - Built on Tokio for high-performance async operations
-- 📊 **Built-in APIs** - Data API + Gamma clients available; CLOB/CLOB WebSocket/RTDS planned
+- 📊 **Built-in APIs** - Data API, Gamma, CLOB, and RTDS clients available
+- 🔌 **Real-Time Streaming** - WebSocket support for RTDS real-time data feeds
 - 🔒 **Type-Safe** - Strongly typed API with comprehensive error handling
 - 🔄 **Auto Retry** - Built-in exponential backoff retry for transient failures
 - 🛠️ **CLI Tool** - Command-line interface for quick API access and testing
@@ -63,15 +64,15 @@ cargo run -- gamma get-markets -l 5
 | ------------------ | ------ | --------------------------------------------------------------------------------------- |
 | **Data API**       | ✅     | Health, holders, value, traded, open interest, live volume, positions, trades, activity |
 | **Gamma Markets**  | ✅     | Sports, events, markets, tags, series, comments, search                                 |
-| **CLOB**           | 🚧     | Public REST endpoints available; private/WS pending                                     |
+| **CLOB**           | ✅     | Public REST endpoints available; private/WS pending                                     |
 | **CLOB WebSocket** | 🚧     | Planned (real-time orderbook updates, trade streams)                                    |
-| **RTDS**           | 🚧     | Planned (real-time price feeds and comments)                                            |
+| **RTDS**           | ✅     | Real-time data streaming (prices, trades, orderbook, comments)                          |
 
 ## Installation
 
 ```toml
 [dependencies]
-polymarket-hft = "0.0.3"
+polymarket-hft = "0.0.4"
 ```
 
 ## Architecture
@@ -83,6 +84,7 @@ polymarket-hft/
 │   │   ├── data/       # Data API client
 │   │   ├── clob/       # CLOB REST API client
 │   │   ├── gamma/      # Gamma Markets API client
+│   │   ├── rtds/       # RTDS WebSocket client
 │   │   └── http.rs     # Shared HTTP client with retry middleware
 │   ├── cli/            # CLI command implementations
 │   └── main.rs         # CLI entry point
@@ -115,7 +117,7 @@ polymarket-hft/
 2. Implement CLOB REST API endpoints
 3. Implement CLOB WebSocket connectivity
 4. ~~Implement Gamma Markets API endpoints~~ ✅
-5. Implement RTDS streaming
+5. ~~Implement RTDS streaming~~ ✅
 6. Add HFT trading strategies framework
 7. Add comprehensive integration tests
 8. Publish to crates.io

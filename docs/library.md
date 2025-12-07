@@ -8,7 +8,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-polymarket-hft = "0.0.3"
+polymarket-hft = "0.0.4"
 ```
 
 ## Quick Start
@@ -327,6 +327,72 @@ let trades = client.get_trades(GetTradesRequest {
     ..Default::default()
 }).await?;
 ```
+
+## RTDS (Real-Time Data Service) Client
+
+The RTDS client provides WebSocket-based real-time data streaming.
+
+```rust
+use polymarket_hft::client::rtds::{RtdsClient, Subscription, ClobAuth};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut client = RtdsClient::builder()
+        .auto_reconnect(true)
+        .build();
+
+    // Connect to RTDS
+    client.connect().await?;
+
+    // Subscribe to crypto prices
+    client.subscribe(vec![
+        Subscription::new("crypto_prices", "update")
+            .with_filter(r#"{"symbol":"BTCUSDT"}"#)
+    ]).await?;
+
+    // Process messages
+    while let Some(msg) = client.next_message().await {
+        println!("{}/{}: {:?}", msg.topic, msg.message_type, msg.payload);
+    }
+
+    client.disconnect().await;
+    Ok(())
+}
+```
+
+### Subscription with CLOB Authentication
+
+```rust
+// For clob_user topic, authentication is required
+client.subscribe(vec![
+    Subscription::new("clob_user", "*")
+        .with_clob_auth(ClobAuth::new("key", "secret", "passphrase"))
+]).await?;
+```
+
+### Supported Topics
+
+| Topic | Types | Filter |
+|-------|-------|--------|
+| `activity` | `trades`, `orders_matched` | `{"event_slug":"..."}` or `{"market_slug":"..."}` |
+| `comments` | `comment_created`, `comment_removed`, `reaction_created`, `reaction_removed` | `{"parentEntityID":n,"parentEntityType":"Event/Series"}` |
+| `rfq` | `request_*`, `quote_*` | None |
+| `crypto_prices` | `update` | `{"symbol":"BTCUSDT"}` |
+| `crypto_prices_chainlink` | `update` | `{"symbol":"..."}` |
+| `equity_prices` | `update` | `{"symbol":"AAPL"}` |
+| `clob_user` | `order`, `trade` | None (requires ClobAuth) |
+| `clob_market` | `price_change`, `agg_orderbook`, `last_trade_price`, `tick_size_change`, `market_created`, `market_resolved` | `["token_id1","token_id2",...]` |
+
+### Message Payload Types
+
+All payload types are available in `polymarket_hft::client::rtds::types`:
+
+- `ActivityTrade` - Activity trades
+- `Comment`, `Reaction` - Comments and reactions
+- `Request`, `Quote` - RFQ messages
+- `CryptoPrice`, `EquityPrice` - Price updates
+- `ClobOrder`, `ClobUserTrade` - CLOB user events
+- `PriceChanges`, `AggOrderbook`, `LastTradePrice`, `TickSizeChange`, `ClobMarket` - CLOB market data
 
 ## Error Handling
 

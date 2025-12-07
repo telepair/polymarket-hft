@@ -224,6 +224,48 @@ Order book data, pricing, and spreads.
 
 ---
 
+## RTDS (Real-Time Data Service)
+
+Real-time WebSocket streaming for market data, trades, and prices.
+
+### Subscribe
+
+Subscribe to real-time data streams.
+
+```bash
+polymarket rtds subscribe --topic <TOPIC> [OPTIONS]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-t, --topic <TOPIC>` | Topic to subscribe (required) |
+| `-T, --message-type <TYPE>` | Message type, `*` for all (default: `*`) |
+| `-f, --filter <JSON>` | Filter in JSON format |
+| `--clob-key <KEY>` | CLOB API key (or `POLY_API_KEY` env) |
+| `--clob-secret <SECRET>` | CLOB API secret (or `POLY_API_SECRET` env) |
+| `--clob-passphrase <PASS>` | CLOB passphrase (or `POLY_PASSPHRASE` env) |
+| `-n, --max-messages <N>` | Max messages to receive (default: 10) |
+| `--timeout <SECS>` | Timeout in seconds (default: 60) |
+| `-o, --output <FORMAT>` | `json` or `compact` (default: json) |
+
+**Available Topics**: `activity`, `comments`, `rfq`, `crypto_prices`, `crypto_prices_chainlink`, `equity_prices`, `clob_user`, `clob_market`
+
+### Examples
+
+```bash
+# Subscribe to BTC price updates
+polymarket rtds subscribe -t crypto_prices -f '{"symbol":"BTCUSDT"}'
+
+# Subscribe to activity trades (compact output)
+polymarket rtds subscribe -t activity -T trades -o compact -n 5
+
+# Subscribe to CLOB user events (with auth from env)
+POLY_API_KEY=xxx POLY_API_SECRET=xxx POLY_PASSPHRASE=xxx \
+  polymarket rtds subscribe -t clob_user
+```
+
+---
+
 ## Output
 
 All commands output JSON format.

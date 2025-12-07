@@ -3,7 +3,7 @@ use tracing_subscriber::EnvFilter;
 
 mod cli;
 
-use cli::{clob, data, gamma};
+use cli::{clob, data, gamma, rtds};
 
 #[derive(Parser)]
 #[command(name = "polymarket")]
@@ -25,6 +25,9 @@ enum Commands {
     /// Gamma API commands
     #[command(subcommand)]
     Gamma(gamma::GammaCommands),
+    /// RTDS (Real-Time Data Service) commands
+    #[command(subcommand)]
+    Rtds(rtds::RtdsCommands),
 }
 
 #[tokio::main]
@@ -46,6 +49,9 @@ async fn main() -> anyhow::Result<()> {
         }
         Commands::Gamma(gamma_cmd) => {
             gamma::handle(gamma_cmd).await?;
+        }
+        Commands::Rtds(rtds_cmd) => {
+            rtds::handle(rtds_cmd).await?;
         }
     }
 
