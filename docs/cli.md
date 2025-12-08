@@ -266,6 +266,58 @@ POLY_API_KEY=xxx POLY_API_SECRET=xxx POLY_PASSPHRASE=xxx \
 
 ---
 
+## CLOB WebSocket
+
+Real-time WebSocket streaming for order book updates, price changes, and user events.
+
+### Market Channel
+
+Subscribe to market data (order book, price changes, trades).
+
+```bash
+polymarket clob-ws market --asset-ids <TOKEN_IDS> [OPTIONS]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-a, --asset-ids <IDS>` | Asset IDs (token IDs), comma-separated (required) |
+| `-n, --max-messages <N>` | Max messages to receive (default: 10) |
+| `--timeout <SECS>` | Timeout in seconds (default: 60) |
+| `-o, --output <FORMAT>` | `json` or `compact` (default: json) |
+
+### User Channel
+
+Subscribe to user events (orders, trades) - requires authentication.
+
+```bash
+polymarket clob-ws user --market-ids <IDS> [OPTIONS]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-m, --market-ids <IDS>` | Market IDs (condition IDs), comma-separated (required) |
+| `--api-key <KEY>` | API key (or `POLY_API_KEY` env) |
+| `--api-secret <SECRET>` | API secret (or `POLY_API_SECRET` env) |
+| `--passphrase <PASS>` | Passphrase (or `POLY_PASSPHRASE` env) |
+| `-n, --max-messages <N>` | Max messages to receive (default: 10) |
+| `--timeout <SECS>` | Timeout in seconds (default: 60) |
+| `-o, --output <FORMAT>` | `json` or `compact` (default: json) |
+
+### Examples
+
+```bash
+# Subscribe to market channel for orderbook updates
+polymarket clob-ws market -a "71321045679252212594626385532706912750332728571942532289631379312455583992563" -n 5
+
+# Subscribe to user channel (auth from env)
+export POLY_API_KEY="your-key"
+export POLY_API_SECRET="your-secret"
+export POLY_PASSPHRASE="your-passphrase"
+polymarket clob-ws user -m "0xabc..." -o compact
+```
+
+---
+
 ## Output
 
 All commands output JSON format.

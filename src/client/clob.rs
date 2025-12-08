@@ -24,6 +24,7 @@ mod client;
 mod orderbook;
 mod pricing;
 mod spreads;
+pub mod ws;
 
 pub use client::{Client, DEFAULT_BASE_URL};
 pub use orderbook::{GetOrderBooksRequestItem, OrderBookSummary, PriceLevel};

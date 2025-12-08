@@ -3,7 +3,7 @@ use tracing_subscriber::EnvFilter;
 
 mod cli;
 
-use cli::{clob, data, gamma, rtds};
+use cli::{clob, clob_ws, data, gamma, rtds};
 
 #[derive(Parser)]
 #[command(name = "polymarket")]
@@ -19,6 +19,9 @@ enum Commands {
     /// CLOB API commands
     #[command(subcommand)]
     Clob(clob::ClobCommands),
+    /// CLOB WebSocket commands
+    #[command(subcommand)]
+    ClobWs(clob_ws::ClobWsCommands),
     /// Data API commands
     #[command(subcommand)]
     Data(data::DataCommands),
@@ -43,6 +46,9 @@ async fn main() -> anyhow::Result<()> {
     match &cli.command {
         Commands::Clob(clob_cmd) => {
             clob::handle(clob_cmd).await?;
+        }
+        Commands::ClobWs(clob_ws_cmd) => {
+            clob_ws::handle(clob_ws_cmd).await?;
         }
         Commands::Data(data_cmd) => {
             data::handle(data_cmd).await?;

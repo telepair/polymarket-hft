@@ -8,7 +8,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-polymarket-hft = "0.0.4"
+polymarket-hft = "0.0.5"
 ```
 
 ## Quick Start
@@ -219,6 +219,70 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 | `get_midpoint_price(token_id)`          | Get midpoint price for a token        |
 | `get_price_history(request)`            | Get price history for a token         |
 | `get_spreads(request)`                  | Get bid-ask spreads for tokens        |
+
+## CLOB WebSocket Client
+
+The CLOB WebSocket client provides real-time streaming of order book updates, price changes, and user events.
+
+```rust
+use polymarket_hft::client::clob::ws::{ClobWsClient, WsAuth, WsMessage};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut client = ClobWsClient::builder()
+        .auto_reconnect(true)
+        .build();
+
+    // Subscribe to market channel (orderbook, price changes)
+    let asset_ids = vec!["71321045679252212594626385532706912750332728571942532289631379312455583992563".to_string()];
+    client.subscribe_market(asset_ids).await?;
+
+    // Process messages
+    while let Some(msg) = client.next_message().await {
+        match msg {
+            WsMessage::Book(book) => println!("Order book: {} bids, {} asks", book.bids.len(), book.asks.len()),
+            WsMessage::PriceChange(pc) => println!("Price change: {}", pc.market),
+            WsMessage::LastTradePrice(ltp) => println!("Last trade: {} @ {}", ltp.size, ltp.price),
+            _ => {}
+        }
+    }
+
+    client.disconnect().await;
+    Ok(())
+}
+```
+
+### User Channel (Authenticated)
+
+```rust
+// Get auth from environment variables (POLY_API_KEY, POLY_API_SECRET, POLY_PASSPHRASE)
+let auth = WsAuth::from_env().expect("Missing auth env vars");
+
+// Or create manually
+let auth = WsAuth::new("api_key", "api_secret", "passphrase");
+
+// Subscribe to user channel
+client.subscribe_user(vec![], auth).await?;
+
+while let Some(msg) = client.next_message().await {
+    match msg {
+        WsMessage::Trade(trade) => println!("Trade: {} status={:?}", trade.id, trade.status),
+        WsMessage::Order(order) => println!("Order: {} type={:?}", order.id, order.order_type),
+        _ => {}
+    }
+}
+```
+
+### Message Types
+
+| Message | Channel | Description |
+|---------|---------|-------------|
+| `Book` | Market | Order book snapshot (bids/asks) |
+| `PriceChange` | Market | Price level changes with best bid/ask |
+| `TickSizeChange` | Market | Tick size updates |
+| `LastTradePrice` | Market | Last trade execution |
+| `Trade` | User | Trade events (MATCHED, MINED, CONFIRMED, etc.) |
+| `Order` | User | Order events (PLACEMENT, UPDATE, CANCELLATION) |
 
 ### Method Details
 

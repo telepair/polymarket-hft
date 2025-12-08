@@ -65,14 +65,14 @@ cargo run -- gamma get-markets -l 5
 | **Data API**       | ✅     | Health, holders, value, traded, open interest, live volume, positions, trades, activity |
 | **Gamma Markets**  | ✅     | Sports, events, markets, tags, series, comments, search                                 |
 | **CLOB**           | ✅     | Public REST endpoints available; private/WS pending                                     |
-| **CLOB WebSocket** | 🚧     | Planned (real-time orderbook updates, trade streams)                                    |
+| **CLOB WebSocket** | ✅     | Real-time orderbook updates, trade streams, user events                                 |
 | **RTDS**           | ✅     | Real-time data streaming (prices, trades, orderbook, comments)                          |
 
 ## Installation
 
 ```toml
 [dependencies]
-polymarket-hft = "0.0.4"
+polymarket-hft = "0.0.5"
 ```
 
 ## Architecture
@@ -83,6 +83,7 @@ polymarket-hft/
 │   ├── client/
 │   │   ├── data/       # Data API client
 │   │   ├── clob/       # CLOB REST API client
+│   │   │   └── ws/     # CLOB WebSocket client
 │   │   ├── gamma/      # Gamma Markets API client
 │   │   ├── rtds/       # RTDS WebSocket client
 │   │   └── http.rs     # Shared HTTP client with retry middleware
@@ -93,6 +94,17 @@ polymarket-hft/
 ## Development Status
 
 🚧 **This project is in active development.**
+
+### Versioning Policy
+
+| Version | Stability | Description |
+|---------|-----------|-------------|
+| **0.0.x** | ⚠️ Early Development | Breaking changes expected. APIs are experimental and not fully validated. Use for exploration only. |
+| **0.1.x** | 🔄 Beta | Client APIs stabilized with no breaking changes within minor versions. Trading strategies remain experimental and may have breaking changes. |
+| **1.0.x** | ✅ Stable | Full API stability. Trading strategies validated and stable. |
+
+> [!CAUTION]
+> Current `0.0.x` versions are in early development. Expect breaking changes between releases. Do not use in production trading systems.
 
 ### Current Status
 
@@ -115,7 +127,7 @@ polymarket-hft/
 
 1. ~~Implement Data API endpoints~~ ✅
 2. Implement CLOB REST API endpoints
-3. Implement CLOB WebSocket connectivity
+3. ~~Implement CLOB WebSocket connectivity~~ ✅
 4. ~~Implement Gamma Markets API endpoints~~ ✅
 5. ~~Implement RTDS streaming~~ ✅
 6. Add HFT trading strategies framework
