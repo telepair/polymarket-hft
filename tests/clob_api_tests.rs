@@ -290,3 +290,118 @@ fn test_interval_from_str() {
     ));
     assert!("invalid".parse::<PriceHistoryInterval>().is_err());
 }
+
+// =============================================================================
+// Markets Tests
+// =============================================================================
+
+#[tokio::test]
+#[ignore = "requires network access"]
+async fn test_get_markets() {
+    use polymarket_hft::client::clob::GetMarketsRequest;
+    let client = Client::new();
+    let result = client.get_markets(GetMarketsRequest::default()).await;
+    assert!(result.is_ok(), "get_markets failed: {:?}", result.err());
+    let markets = result.unwrap();
+    println!("Received {} markets", markets.data.len());
+    println!("Next cursor: {}", markets.next_cursor);
+    if let Some(first) = markets.data.first() {
+        println!("First market condition_id: {}", first.condition_id);
+    }
+}
+
+#[tokio::test]
+#[ignore = "requires network access"]
+async fn test_get_sampling_markets() {
+    let client = Client::new();
+    let result = client.get_sampling_markets(None).await;
+    assert!(
+        result.is_ok(),
+        "get_sampling_markets failed: {:?}",
+        result.err()
+    );
+    let markets = result.unwrap();
+    println!("Received {} sampling markets", markets.data.len());
+}
+
+// =============================================================================
+// Token Info Tests
+// =============================================================================
+
+#[tokio::test]
+#[ignore = "requires network access"]
+async fn test_get_tick_size() {
+    let token_id = get_valid_token_id()
+        .await
+        .expect("Failed to get a valid token_id from active markets");
+    println!("Using token_id: {}", token_id);
+
+    let client = Client::new();
+    let result = client.get_tick_size(&token_id).await;
+    assert!(result.is_ok(), "get_tick_size failed: {:?}", result.err());
+    let tick_size = result.unwrap();
+    println!("Tick size: {}", tick_size);
+}
+
+#[tokio::test]
+#[ignore = "requires network access"]
+async fn test_get_neg_risk() {
+    let token_id = get_valid_token_id()
+        .await
+        .expect("Failed to get a valid token_id from active markets");
+    println!("Using token_id: {}", token_id);
+
+    let client = Client::new();
+    let result = client.get_neg_risk(&token_id).await;
+    assert!(result.is_ok(), "get_neg_risk failed: {:?}", result.err());
+    let neg_risk = result.unwrap();
+    println!("Neg risk: {}", neg_risk);
+}
+
+// =============================================================================
+// Last Trade Price Tests
+// =============================================================================
+
+#[tokio::test]
+#[ignore = "requires network access"]
+async fn test_get_last_trade_price() {
+    let token_id = get_valid_token_id()
+        .await
+        .expect("Failed to get a valid token_id from active markets");
+    println!("Using token_id: {}", token_id);
+
+    let client = Client::new();
+    let result = client.get_last_trade_price(&token_id).await;
+    assert!(
+        result.is_ok(),
+        "get_last_trade_price failed: {:?}",
+        result.err()
+    );
+    let price = result.unwrap();
+    println!("Last trade price: {}", price);
+}
+
+// =============================================================================
+// Order Book Hash Tests
+// =============================================================================
+
+#[tokio::test]
+#[ignore = "requires network access"]
+async fn test_order_book_contains_hash() {
+    // The hash is included in the order book response from GET /book endpoint.
+    // There is no separate /hash endpoint.
+    let token_id = get_valid_token_id()
+        .await
+        .expect("Failed to get a valid token_id from active markets");
+    println!("Using token_id: {}", token_id);
+
+    let client = Client::new();
+    let result = client.get_order_book(&token_id).await;
+    assert!(result.is_ok(), "get_order_book failed: {:?}", result.err());
+    let order_book = result.unwrap();
+    assert!(
+        !order_book.hash.is_empty(),
+        "Order book hash should not be empty"
+    );
+    println!("Order book hash: {}", order_book.hash);
+}

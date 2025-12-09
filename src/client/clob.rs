@@ -20,16 +20,33 @@
 //! }
 //! ```
 
+mod auth;
 mod client;
-mod orderbook;
+mod markets;
+pub mod order_utils;
+pub mod orderbook;
 mod pricing;
 mod spreads;
+mod token_info;
+mod trading;
+mod types;
 pub mod ws;
 
 pub use client::{Client, DEFAULT_BASE_URL};
+pub use markets::{
+    GetMarketsRequest, Market, MarketToken, MarketTradeEvent, MarketsPaginatedResponse,
+    SimplifiedMarket,
+};
+pub use order_utils::{ExchangeOrderBuilder, OrderData, OrderSide, SignatureType, SignedOrder};
 pub use orderbook::{GetOrderBooksRequestItem, OrderBookSummary, PriceLevel};
 pub use pricing::{
     GetPriceHistoryRequest, MarketPrice, MarketPriceRequest, MidpointPrice, PriceHistory,
     PriceHistoryInterval, PriceHistoryPoint, Side,
 };
 pub use spreads::SpreadRequest;
+pub use trading::TradingClient;
+pub use types::{
+    ApiKeyCreds, ApiKeyRaw, ApiKeysResponse, AssetType, BalanceAllowance, BalanceAllowanceParams,
+    BanStatus, Chain, CreateOrderOptions, OpenOrder, OpenOrderParams, OrderType, PostOrdersArgs,
+    TickSize, Trade, TradeParams, TradesPaginatedResponse, UserLimitOrder, UserMarketOrder,
+};

@@ -26,6 +26,22 @@ anyhow = "1.0.100"
 tokio-tungstenite = { version = "0.26", features = ["rustls-tls-webpki-roots"] }
 futures-util = "0.3"
 
+# Ethereum & Cryptography (for CLOB trading)
+alloy-primitives = "0.8"
+alloy-signer = "0.5"
+alloy-signer-local = "0.5"
+alloy-sol-types = "0.8"
+
+# Authentication & Crypto
+hmac = "0.12"
+sha2 = "0.10"
+base64 = "0.22"
+
+# Utilities
+chrono = "0.4"
+hex = "0.4"
+rand = "0.8"
+
 [[bin]]
 name = "polymarket"
 path = "src/main.rs"

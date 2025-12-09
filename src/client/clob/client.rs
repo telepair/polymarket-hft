@@ -177,6 +177,75 @@ impl Client {
         url.set_path(&merged);
         url
     }
+
+    // =========================================================================
+    // Server Endpoints
+    // =========================================================================
+
+    /// Health check - verifies the server is operational.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(())` if the server is healthy.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use polymarket_hft::client::clob::Client;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     let client = Client::new();
+    ///     client.get_ok().await?;
+    ///     println!("Server is healthy!");
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn get_ok(&self) -> Result<()> {
+        let url = self.build_url("");
+        trace!(url = %url, method = "GET", "sending health check request");
+        let response = self.http_client.get(url).send().await?;
+        self.check_response(response).await?;
+        trace!("server health check passed");
+        Ok(())
+    }
+
+    /// Gets the current server time in Unix milliseconds.
+    ///
+    /// This is useful for synchronizing timestamps for order signatures.
+    ///
+    /// # Returns
+    ///
+    /// Returns the server time as Unix milliseconds.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use polymarket_hft::client::clob::Client;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     let client = Client::new();
+    ///     let time = client.get_server_time().await?;
+    ///     println!("Server time: {} ms", time);
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn get_server_time(&self) -> Result<u64> {
+        let url = self.build_url("time");
+        trace!(url = %url, method = "GET", "sending server time request");
+        let response = self.http_client.get(url).send().await?;
+        let response = self.check_response(response).await?;
+
+        #[derive(serde::Deserialize)]
+        struct TimeResponse {
+            time: u64,
+        }
+
+        let result: TimeResponse = response.json().await?;
+        trace!(time = result.time, "received server time");
+        Ok(result.time)
+    }
 }
 
 impl Default for Client {

@@ -176,6 +176,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## CLOB API Client
 
+The CLOB client provides access to Polymarket's Central Limit Order Book (CLOB) API.
+
+### Public Client (Read-Only)
+
 ```rust
 use polymarket_hft::client::clob::{Client, Side, GetPriceHistoryRequest, PriceHistoryInterval};
 
@@ -203,22 +207,142 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }).await?;
     println!("History points: {}", history.history.len());
 
+    // Get simplified markets
+    let markets = client.get_simplified_markets(None).await?;
+    println!("Markets: {}", markets.data.len());
+
+    // Get market trade events
+    let events = client.get_market_trades_events("condition_id").await?;
+    println!("Trade events: {}", events.len());
+
     Ok(())
 }
 ```
 
-### Available Methods (CLOB)
+### Trading Client (Authenticated)
 
-| Method                                  | Description                           |
-| --------------------------------------- | ------------------------------------- |
-| `get_order_book(token_id)`              | Get order book for a token            |
-| `get_order_books(request)`              | Get order books for multiple tokens   |
-| `get_market_price(token_id, side)`      | Get market price for a token and side |
-| `get_market_prices()`                   | Get all market prices                 |
-| `get_market_prices_by_request(request)` | Get prices for specified tokens/sides |
-| `get_midpoint_price(token_id)`          | Get midpoint price for a token        |
-| `get_price_history(request)`            | Get price history for a token         |
-| `get_spreads(request)`                  | Get bid-ask spreads for tokens        |
+```rust
+use polymarket_hft::client::clob::{
+    TradingClient, ApiKeyCreds, Chain, OrderType, UserLimitOrder, TickSize, Side,
+};
+use alloy_signer_local::PrivateKeySigner;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create wallet from private key
+    let wallet: PrivateKeySigner = "0x...".parse()?;
+
+    // Get or create API credentials
+    let creds = ApiKeyCreds {
+        key: "your_api_key".to_string(),
+        secret: "your_secret".to_string(),
+        passphrase: "your_passphrase".to_string(),
+    };
+
+    // Create trading client
+    let client = TradingClient::new(wallet.clone(), creds, Chain::Polygon);
+
+    // Or create/derive API key programmatically
+    let new_creds = client.create_or_derive_api_key(None).await?;
+
+    // Create and post a limit order
+    let order = UserLimitOrder {
+        token_id: "token_id".to_string(),
+        price: 0.55,
+        size: 10.0,
+        side: Side::Buy,
+        fee_rate_bps: None,
+        nonce: None,
+        expiration: None,
+        taker: None,
+    };
+
+    let result = client.create_and_post_limit_order(
+        &order,
+        TickSize::PointZeroOne,
+        false,
+        OrderType::Gtc,
+    ).await?;
+    println!("Order posted: {:?}", result);
+
+    // Get open orders
+    let orders = client.get_open_orders(None).await?;
+    println!("Open orders: {}", orders.len());
+
+    // Cancel all orders
+    client.cancel_all().await?;
+
+    Ok(())
+}
+```
+
+### Available Methods (CLOB Public Client)
+
+| Method                                     | Description                              |
+| ------------------------------------------ | ---------------------------------------- |
+| `get_ok()`                                 | Health check                             |
+| `get_server_time()`                        | Get server time                          |
+| `get_order_book(token_id)`                 | Get order book for a token               |
+| `get_order_books(request)`                 | Get order books for multiple tokens      |
+| `get_order_book_hash(token_id)`            | Get order book hash for change detection |
+| `get_market_price(token_id, side)`         | Get market price for a token and side    |
+| `get_market_prices()`                      | Get all market prices                    |
+| `get_market_prices_by_request(request)`    | Get prices for specified tokens/sides    |
+| `get_midpoint_price(token_id)`             | Get midpoint price for a token           |
+| `get_price_history(request)`               | Get price history for a token            |
+| `get_last_trade_price(token_id)`           | Get last trade price                     |
+| `get_last_trades_prices(token_ids)`        | Get last trade prices for multiple tokens|
+| `get_spreads(request)`                     | Get bid-ask spreads for tokens           |
+| `get_tick_size(token_id)`                  | Get tick size for a token                |
+| `get_neg_risk(token_id)`                   | Check if token uses negative risk        |
+| `get_fee_rate_bps(token_id)`               | Get fee rate in basis points             |
+| `get_markets(request)`                     | Get markets with pagination              |
+| `get_market(condition_id)`                 | Get a single market                      |
+| `get_simplified_markets(cursor)`           | Get simplified markets                   |
+| `get_sampling_markets(cursor)`             | Get sampling markets                     |
+| `get_sampling_simplified_markets(cursor)`  | Get sampling simplified markets          |
+| `get_market_trades_events(condition_id)`   | Get live trade events for a market       |
+
+### Available Methods (CLOB Trading Client)
+
+| Method                                     | Description                              |
+| ------------------------------------------ | ---------------------------------------- |
+| **API Key Management (L1)**                |                                          |
+| `create_api_key(nonce)`                    | Create new API key with L1 auth          |
+| `derive_api_key(nonce)`                    | Derive existing API key                  |
+| `create_or_derive_api_key(nonce)`          | Create or derive API key                 |
+| **API Key Management (L2)**                |                                          |
+| `get_api_keys()`                           | Get all API keys                         |
+| `delete_api_key()`                         | Delete current API key                   |
+| `get_closed_only_mode()`                   | Get ban/closed-only status               |
+| **Order Submission**                       |                                          |
+| `post_order(order, order_type)`            | Post a signed order                      |
+| `post_orders(orders)`                      | Post multiple signed orders              |
+| `create_limit_order(order, tick, neg)`     | Create signed limit order                |
+| `create_market_order(order, tick, neg)`    | Create signed market order               |
+| `create_and_post_limit_order(...)`         | Create and post limit order              |
+| `create_and_post_market_order(...)`        | Create and post market order             |
+| **Order Queries**                          |                                          |
+| `get_open_order(order_id)`                 | Get an open order by ID                  |
+| `get_open_orders(params)`                  | Get all open orders                      |
+| `get_trades(params)`                       | Get trade history                        |
+| `get_trades_paginated(params, cursor)`     | Get trades with pagination               |
+| **Order Cancellation**                     |                                          |
+| `cancel_order(order_id)`                   | Cancel a single order                    |
+| `cancel_orders(order_ids)`                 | Cancel multiple orders                   |
+| `cancel_all()`                             | Cancel all open orders                   |
+| `cancel_market_orders(market, asset_id)`   | Cancel orders for a market               |
+| **Balance & Allowance**                    |                                          |
+| `get_balance_allowance(params)`            | Get balance and allowance                |
+| `update_balance_allowance(params)`         | Update balance/allowance cache           |
+| **Order Scoring**                          |                                          |
+| `is_order_scoring(order_id)`               | Check if order is scoring                |
+| `are_orders_scoring(order_ids)`            | Check multiple orders scoring            |
+| **Notifications**                          |                                          |
+| `get_notifications()`                      | Get notifications                        |
+| `drop_notifications(ids)`                  | Delete notifications                     |
+| **Utility**                                |                                          |
+| `calculate_market_price(token, side, amt)` | Calculate optimal market price           |
 
 ## CLOB WebSocket Client
 

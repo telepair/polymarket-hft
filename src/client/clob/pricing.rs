@@ -414,6 +414,81 @@ impl Client {
         trace!(count = history.history.len(), "received price history");
         Ok(history)
     }
+
+    /// Gets the last trade price for a specific token.
+    ///
+    /// # Arguments
+    ///
+    /// * `token_id` - The unique identifier for the token.
+    ///
+    /// # Returns
+    ///
+    /// Returns the last trade price as a string.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use polymarket_hft::client::clob::Client;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     let client = Client::new();
+    ///     let price = client.get_last_trade_price("1234567890").await?;
+    ///     println!("Last trade price: {}", price);
+    ///     Ok(())
+    /// }
+    /// ```
+    #[instrument(skip(self), fields(token_id = %token_id), level = "trace")]
+    pub async fn get_last_trade_price(&self, token_id: &str) -> Result<String> {
+        let mut url = self.build_url("last-trade-price");
+        url.query_pairs_mut().append_pair("token_id", token_id);
+
+        trace!(url = %url, method = "GET", "sending HTTP request");
+        let response = self.http_client.get(url).send().await?;
+        let response = self.check_response(response).await?;
+
+        #[derive(Deserialize)]
+        struct LastTradePriceResponse {
+            price: String,
+        }
+
+        let result: LastTradePriceResponse = response.json().await?;
+        trace!(price = %result.price, "received last trade price");
+        Ok(result.price)
+    }
+
+    /// Gets last trade prices for multiple tokens.
+    ///
+    /// # Arguments
+    ///
+    /// * `token_ids` - A slice of token IDs.
+    ///
+    /// # Returns
+    ///
+    /// Returns a map of token_id to last trade price.
+    #[instrument(skip(self, token_ids), level = "trace")]
+    pub async fn get_last_trades_prices(
+        &self,
+        token_ids: &[String],
+    ) -> Result<HashMap<String, String>> {
+        let url = self.build_url("last-trades-prices");
+
+        #[derive(Serialize)]
+        struct Request {
+            token_ids: Vec<String>,
+        }
+
+        let request = Request {
+            token_ids: token_ids.to_vec(),
+        };
+
+        trace!(url = %url, method = "POST", count = token_ids.len(), "sending HTTP request");
+        let response = self.http_client.post(url).json(&request).send().await?;
+        let response = self.check_response(response).await?;
+        let prices: HashMap<String, String> = response.json().await?;
+        trace!(count = prices.len(), "received last trades prices");
+        Ok(prices)
+    }
 }
 
 #[cfg(test)]

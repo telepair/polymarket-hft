@@ -4,6 +4,16 @@
 [![Documentation](https://docs.rs/polymarket-hft/badge.svg)](https://docs.rs/polymarket-hft)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+> [!CAUTION] > **⚠️ Early Development (Pre-0.1.0)**
+>
+> The current `0.0.x` series is in early development:
+>
+> - API wrappers **are not fully tested** and may have bugs
+> - **Breaking changes** may occur between versions
+> - **Do not use in production trading systems**
+>
+> Stability guarantees will start from `0.1.0`.
+
 A high-frequency trading (HFT) system for [Polymarket](https://polymarket.com) with built-in API clients and CLI.
 
 ## Features
@@ -64,7 +74,7 @@ cargo run -- gamma get-markets -l 5
 | ------------------ | ------ | --------------------------------------------------------------------------------------- |
 | **Data API**       | ✅     | Health, holders, value, traded, open interest, live volume, positions, trades, activity |
 | **Gamma Markets**  | ✅     | Sports, events, markets, tags, series, comments, search                                 |
-| **CLOB**           | ✅     | Public REST endpoints available; private/WS pending                                     |
+| **CLOB**           | ✅     | Full REST API: markets, orderbook, pricing, trading, API keys, balance, notifications   |
 | **CLOB WebSocket** | ✅     | Real-time orderbook updates, trade streams, user events                                 |
 | **RTDS**           | ✅     | Real-time data streaming (prices, trades, orderbook, comments)                          |
 
@@ -97,14 +107,11 @@ polymarket-hft/
 
 ### Versioning Policy
 
-| Version | Stability | Description |
-|---------|-----------|-------------|
-| **0.0.x** | ⚠️ Early Development | Breaking changes expected. APIs are experimental and not fully validated. Use for exploration only. |
-| **0.1.x** | 🔄 Beta | Client APIs stabilized with no breaking changes within minor versions. Trading strategies remain experimental and may have breaking changes. |
-| **1.0.x** | ✅ Stable | Full API stability. Trading strategies validated and stable. |
-
-> [!CAUTION]
-> Current `0.0.x` versions are in early development. Expect breaking changes between releases. Do not use in production trading systems.
+| Version   | Stability            | Description                                                                                                                                  |
+| --------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **0.0.x** | ⚠️ Early Development | Breaking changes expected. APIs are experimental and not fully validated. Use for exploration only.                                          |
+| **0.1.x** | 🔄 Beta              | Client APIs stabilized with no breaking changes within minor versions. Trading strategies remain experimental and may have breaking changes. |
+| **1.0.x** | ✅ Stable            | Full API stability. Trading strategies validated and stable.                                                                                 |
 
 ### Current Status
 
@@ -126,7 +133,7 @@ polymarket-hft/
 ### Roadmap
 
 1. ~~Implement Data API endpoints~~ ✅
-2. Implement CLOB REST API endpoints
+2. ~~Implement CLOB REST API endpoints~~ ✅
 3. ~~Implement CLOB WebSocket connectivity~~ ✅
 4. ~~Implement Gamma Markets API endpoints~~ ✅
 5. ~~Implement RTDS streaming~~ ✅
