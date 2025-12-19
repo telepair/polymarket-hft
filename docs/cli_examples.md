@@ -222,6 +222,53 @@ polymarket cmc get-key-info
 
 ---
 
+## Alternative.me API
+
+> [!NOTE]
+> Free API - no API key required.
+
+### Ticker
+
+```bash
+# Get top 10 cryptocurrencies by market cap
+polymarket alternative-me get-ticker --limit 10
+
+# Get ticker sorted by 24h volume
+polymarket alternative-me get-ticker --limit 20 --sort volume_24h
+
+# Get specific cryptocurrency (by ID or slug)
+polymarket alternative-me get-ticker-by-id bitcoin
+polymarket alternative-me get-ticker-by-id 1
+
+# Get ticker with EUR conversion
+polymarket alternative-me get-ticker-by-id bitcoin --convert EUR
+```
+
+### Market Metrics
+
+```bash
+# Get global market metrics (total market cap, BTC dominance)
+polymarket alternative-me get-global
+
+# With EUR conversion
+polymarket alternative-me get-global --convert EUR
+```
+
+### Fear and Greed Index
+
+```bash
+# Get latest Fear and Greed Index
+polymarket alternative-me get-fear-and-greed
+
+# Get historical data (last 7 days)
+polymarket alternative-me get-fear-and-greed --limit 7
+
+# Get historical data with date format
+polymarket alternative-me get-fear-and-greed --limit 30 --date-format us
+```
+
+---
+
 ## CLOB WebSocket
 
 ### Market Channel
@@ -299,4 +346,8 @@ polymarket rtds subscribe -t comments -n 5 -o compact
 | CMC     | get-global-metrics | (optional)                |
 | CMC     | get-fear-and-greed | -                         |
 | CMC     | get-key-info       | -                         |
+| Alt.me  | get-ticker         | (optional filters)        |
+| Alt.me  | get-ticker-by-id   | `<ID>` or `<SLUG>`        |
+| Alt.me  | get-global         | (optional)                |
+| Alt.me  | get-fear-and-greed | (optional)                |
 | RTDS    | subscribe          | `-t <TOPIC>`              |

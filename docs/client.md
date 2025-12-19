@@ -13,6 +13,7 @@ The library provides clients for the following services:
 | **Polymarket CLOB**  | `client::polymarket::clob`  | REST / WebSocket | Order book, trading, price history.                    |
 | **Polymarket RTDS**  | `client::polymarket::rtds`  | WebSocket        | Real-time data streaming (prices, activity).           |
 | **CoinMarketCap**    | `client::coinmarketcap`     | REST             | Cryptocurrency listings, global metrics, fear & greed. |
+| **Alternative.me**   | `client::alternativeme`     | REST             | Free crypto API: ticker, global, fear & greed.         |
 
 ## Common Features
 
@@ -148,6 +149,66 @@ Common error codes:
 | 402  | Payment required (plan limit exceeded) |
 | 429  | Rate limit exceeded                    |
 | 500  | Internal server error                  |
+
+---
+
+## Alternative.me Client
+
+The Alternative.me client provides free access to cryptocurrency prices and the Fear & Greed Index.
+
+> [!NOTE] > **No API key required**. Rate limit: 60 requests per minute.
+
+### Quick Start
+
+```rust
+use polymarket_hft::client::alternativeme::{
+    Client,
+    GetTickerRequest,
+    GetFearAndGreedRequest
+};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = Client::new();
+
+    // 1. Get Latest Ticker Data (Top 5)
+    let ticker = client.get_ticker(GetTickerRequest {
+        limit: Some(5),
+        ..Default::default()
+    }).await?;
+
+    println!("Top 5 Cryptocurrencies:");
+    for crypto in ticker.data {
+        println!("{}: ${}", crypto.name, crypto.quotes["USD"].price);
+    }
+
+    // 2. Get Global Market Metrics
+    let global = client.get_global(Default::default()).await?;
+    println!("Total Market Cap: ${:.0}B",
+        global.data.quotes["USD"].total_market_cap / 1e9);
+
+    // 3. Get Fear and Greed Index
+    let fng = client.get_fear_and_greed(
+        GetFearAndGreedRequest::default()
+    ).await?;
+    println!("Fear & Greed: {} ({})",
+        fng.data[0].value,
+        fng.data[0].value_classification
+    );
+
+    Ok(())
+}
+```
+
+### Endpoints
+
+| Method               | Endpoint          | Description               |
+| -------------------- | ----------------- | ------------------------- |
+| `get_listings`       | `/v2/listings/`   | All cryptocurrency IDs    |
+| `get_ticker`         | `/v2/ticker/`     | Price, volume, market cap |
+| `get_ticker_by_id`   | `/v2/ticker/{id}` | Specific cryptocurrency   |
+| `get_global`         | `/v2/global/`     | Global market metrics     |
+| `get_fear_and_greed` | `/fng/`           | Fear and Greed Index      |
 
 ---
 

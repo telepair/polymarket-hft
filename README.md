@@ -27,6 +27,7 @@ Clients → Ingestors → Dispatcher → Policy Engine → Action Executor
 | Polymarket CLOB          | REST + WebSocket | ✅     |
 | Polymarket RTDS          | WebSocket        | ✅     |
 | CoinMarketCap Standard   | REST             | ✅     |
+| Alternative.me Crypto    | REST             | ✅     |
 
 **Storage** - State Manager and Archiver are implemented using Redis and TimescaleDB.
 
