@@ -224,6 +224,71 @@ Order book data, pricing, and spreads.
 
 ---
 
+## CoinMarketCap API
+
+> [!NOTE]
+> Requires `CMC_API_KEY` environment variable. Get a free key at [CoinMarketCap API](https://coinmarketcap.com/api/).
+
+### Commands
+
+| Command              | Description                        |
+| -------------------- | ---------------------------------- |
+| `get-listings`       | Get latest cryptocurrency listings |
+| `get-global-metrics` | Get global market metrics          |
+| `get-fear-and-greed` | Get Fear and Greed Index           |
+| `get-key-info`       | Get API key usage information      |
+
+### get-listings
+
+Get top cryptocurrencies with optional filtering.
+
+| Option                                          | Description                                     |
+| ----------------------------------------------- | ----------------------------------------------- |
+| `-l, --limit <N>`                               | Number of results (default: 100, max: 5000)     |
+| `--start <N>`                                   | Starting position for pagination (1-based)      |
+| `--price-min <N>` / `--price-max <N>`           | Filter by price range                           |
+| `--market-cap-min <N>` / `--market-cap-max <N>` | Filter by market cap                            |
+| `-c, --convert <CURRENCY>`                      | Currency for quotes (e.g., USD, EUR)            |
+| `--sort <FIELD>`                                | Sort field: market_cap, name, price, volume_24h |
+| `--sort-dir <DIR>`                              | Sort direction: asc or desc                     |
+| `--cryptocurrency-type <TYPE>`                  | Filter: all, coins, tokens                      |
+| `--tag <TAG>`                                   | Filter by tag: defi, filesharing, etc.          |
+
+### get-global-metrics
+
+Get total market cap, BTC dominance, and other global metrics.
+
+| Option                 | Description         |
+| ---------------------- | ------------------- |
+| `-c, --convert <CURR>` | Currency for quotes |
+
+### Examples
+
+```bash
+# Set API key
+export CMC_API_KEY="your-api-key"
+
+# Get top 10 cryptocurrencies
+polymarket cmc get-listings -l 10
+
+# Get global market metrics
+polymarket cmc get-global-metrics
+
+# Get Fear and Greed Index
+polymarket cmc get-fear-and-greed
+
+# Check API usage
+polymarket cmc get-key-info
+
+# Get cryptocurrencies priced above $1000
+polymarket cmc get-listings --price-min 1000 -l 20
+
+# Get top 5 DeFi tokens by market cap
+polymarket cmc get-listings --tag defi --sort market_cap --sort-dir desc -l 5
+```
+
+---
+
 ## RTDS (Real-Time Data Service)
 
 Real-time WebSocket streaming for market data, trades, and prices.

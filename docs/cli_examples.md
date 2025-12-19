@@ -1,6 +1,6 @@
 # CLI Commands Examples
 
-All commands verified on 2025-12-07. Binary: `polymarket` (or `cargo run --`).
+All commands verified on 2025-12-19. Binary: `polymarket` (or `cargo run --`).
 
 ---
 
@@ -186,36 +186,117 @@ polymarket clob get-spreads \
 
 ---
 
+## CoinMarketCap API
+
+> [!NOTE]
+> Requires `CMC_API_KEY` environment variable. Get a free API key at: <https://coinmarketcap.com/api/>
+
+### Listings
+
+```bash
+# Get top 10 cryptocurrencies
+polymarket cmc get-listings -l 10
+
+# Get listings with filters
+polymarket cmc get-listings -l 20 --price-min 1 --price-max 1000 --convert EUR
+
+# Filter by type and tag
+polymarket cmc get-listings -l 10 --cryptocurrency-type tokens --tag defi
+```
+
+### Market Metrics
+
+```bash
+# Get global market metrics (total market cap, BTC dominance, etc.)
+polymarket cmc get-global-metrics
+
+# With specific currency
+polymarket cmc get-global-metrics --convert EUR
+
+# Get Fear and Greed Index
+polymarket cmc get-fear-and-greed
+
+# Check API key usage
+polymarket cmc get-key-info
+```
+
+---
+
+## CLOB WebSocket
+
+### Market Channel
+
+```bash
+# Subscribe to order book updates for a token
+polymarket clob-ws market \
+  -a 60487116984468020978247225474488676749601001829886755968952521846780452448915 \
+  -n 5 --timeout 30
+
+# Subscribe to multiple tokens with compact output
+polymarket clob-ws market \
+  -a 60487116984468020978247225474488676749601001829886755968952521846780452448915,81104637750588840860328515305303028259865221573278091453716127842023614249200 \
+  -o compact
+```
+
+### User Channel (Requires Auth)
+
+```bash
+# Subscribe to user order/trade updates
+# Requires POLY_API_KEY, POLY_API_SECRET, POLY_PASSPHRASE env vars
+polymarket clob-ws user \
+  -m 0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917 \
+  -n 10 --timeout 60
+```
+
+---
+
+## RTDS (Real-Time Data Service)
+
+### Subscribe to Topics
+
+```bash
+# Subscribe to crypto prices
+polymarket rtds subscribe -t crypto_prices -n 5
+
+# Subscribe with filter
+polymarket rtds subscribe -t crypto_prices -n 10 \
+  --filter '{"symbol":"BTCUSDT"}'
+
+# Subscribe to activity stream
+polymarket rtds subscribe -t activity -T "*" -n 20 --timeout 120
+
+# Subscribe with compact output
+polymarket rtds subscribe -t comments -n 5 -o compact
+```
+
+> [!TIP]
+> Available topics: `activity`, `comments`, `rfq`, `crypto_prices`,
+> `crypto_prices_chainlink`, `equity_prices`, `clob_user`, `clob_market`
+
+---
+
 ## Quick Reference
 
-| API   | Command                   | Required Args              |
-| ----- | ------------------------- | -------------------------- |
-| Data  | health                    | -                          |
-| Data  | get-user-positions        | `-u <ADDRESS>`             |
-| Data  | get-user-closed-positions | `-u <ADDRESS>`             |
-| Data  | get-user-portfolio-value  | `-u <ADDRESS>`             |
-| Data  | get-user-traded-markets   | `-u <ADDRESS>`             |
-| Data  | get-user-activity         | `-u <ADDRESS>`             |
-| Data  | get-trades                | (optional filters)         |
-| Data  | get-market-top-holders    | `-m <MARKET_ID>`           |
-| Data  | get-open-interest         | `-m <MARKET_ID>`           |
-| Data  | get-event-live-volume     | `-i <EVENT_ID>`            |
-| Gamma | get-sports                | -                          |
-| Gamma | get-teams                 | (optional filters)         |
-| Gamma | get-tags                  | (optional filters)         |
-| Gamma | get-series                | (optional filters)         |
-| Gamma | get-events                | (optional filters)         |
-| Gamma | get-markets               | (optional filters)         |
-| Gamma | get-tag-by-id             | `<TAG_ID>`                 |
-| Gamma | get-tag-by-slug           | `<SLUG>`                   |
-| Gamma | get-event-by-id           | `<EVENT_ID>`               |
-| Gamma | get-event-by-slug         | `<SLUG>`                   |
-| Gamma | get-market-by-id          | `<MARKET_ID>`              |
-| Gamma | get-market-by-slug        | `<SLUG>`                   |
-| Gamma | search                    | `"<QUERY>"`                |
-| CLOB  | get-order-book            | `-t <TOKEN_ID>`            |
-| CLOB  | get-order-books           | `-t <TOKEN_ID>` (multiple) |
-| CLOB  | get-market-price          | `-t <TOKEN_ID> -s <SIDE>`  |
-| CLOB  | get-midpoint-price        | `-t <TOKEN_ID>`            |
-| CLOB  | get-price-history         | `-m <TOKEN_ID>`            |
-| CLOB  | get-spreads               | `-t <TOKEN_ID>` (multiple) |
+| API     | Command            | Required Args             |
+| ------- | ------------------ | ------------------------- |
+| Data    | health             | -                         |
+| Data    | get-user-positions | `-u <ADDRESS>`            |
+| Data    | get-trades         | (optional filters)        |
+| Data    | get-open-interest  | `-m <MARKET_ID>`          |
+| Gamma   | get-sports         | -                         |
+| Gamma   | get-events         | (optional filters)        |
+| Gamma   | get-markets        | (optional filters)        |
+| Gamma   | get-event-by-id    | `<EVENT_ID>`              |
+| Gamma   | get-market-by-id   | `<MARKET_ID>`             |
+| Gamma   | search             | `"<QUERY>"`               |
+| CLOB    | get-order-book     | `-t <TOKEN_ID>`           |
+| CLOB    | get-market-price   | `-t <TOKEN_ID> -s <SIDE>` |
+| CLOB    | get-midpoint-price | `-t <TOKEN_ID>`           |
+| CLOB    | get-price-history  | `-m <TOKEN_ID>`           |
+| CLOB WS | market             | `-a <ASSET_IDS>`          |
+| CLOB WS | user               | `-m <MARKET_IDS>` + auth  |
+| CMC     | get-listings       | (optional filters)        |
+| CMC     | get-global-metrics | (optional)                |
+| CMC     | get-fear-and-greed | -                         |
+| CMC     | get-key-info       | -                         |
+| RTDS    | subscribe          | `-t <TOPIC>`              |

@@ -3,7 +3,7 @@ use tracing_subscriber::EnvFilter;
 
 mod cli;
 
-use cli::{clob, clob_ws, data, gamma, rtds};
+use cli::{clob, clob_ws, cmc, data, gamma, rtds};
 
 #[derive(Parser)]
 #[command(name = "polymarket")]
@@ -31,6 +31,9 @@ enum Commands {
     /// RTDS (Real-Time Data Service) commands
     #[command(subcommand)]
     Rtds(rtds::RtdsCommands),
+    /// CoinMarketCap API commands (requires CMC_API_KEY)
+    #[command(subcommand)]
+    Cmc(cmc::CmcCommands),
 }
 
 #[tokio::main]
@@ -58,6 +61,9 @@ async fn main() -> anyhow::Result<()> {
         }
         Commands::Rtds(rtds_cmd) => {
             rtds::handle(rtds_cmd).await?;
+        }
+        Commands::Cmc(cmc_cmd) => {
+            cmc::handle(cmc_cmd).await?;
         }
     }
 

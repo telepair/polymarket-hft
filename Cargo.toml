@@ -1,6 +1,6 @@
 [package]
 name = "polymarket-hft"
-version = "0.0.5"
+version = "0.0.6"
 edition = "2024"
 authors = ["Telepair <liys87x@gmail.com>"]
 description = "A high-frequency trading system for Polymarket with built-in API clients (Data API, CLOB, CLOB WebSocket, Gamma, RTDS) and CLI"
@@ -48,3 +48,6 @@ path = "src/main.rs"
 
 [features]
 default = []
+
+[dev-dependencies]
+wiremock = "0.6.5"

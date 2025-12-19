@@ -26,6 +26,7 @@ Clients → Ingestors → Dispatcher → Policy Engine → Action Executor
 | Polymarket Gamma Markets | REST             | ✅     |
 | Polymarket CLOB          | REST + WebSocket | ✅     |
 | Polymarket RTDS          | WebSocket        | ✅     |
+| CoinMarketCap Standard   | REST             | ✅     |
 
 **Storage** - State Manager and Archiver are implemented using Redis and TimescaleDB.
 
@@ -51,14 +52,14 @@ See [Architecture](./docs/architecture.md) and [Policy Engine](./docs/policy.md)
 
 ## Documentation
 
-| Document                                   | Description                  |
-| ------------------------------------------ | ---------------------------- |
-| [Library Guide](./docs/library.md)         | SDK usage as a Rust library  |
-| [CLI Guide](./docs/cli.md)                 | Command-line interface usage |
-| [CLI Examples](./docs/cli_examples.md)     | Practical CLI examples       |
-| [Architecture](./docs/architecture.md)     | System design and HFT engine |
-| [Policy Engine](./docs/policy.md)          | User-defined policy DSL      |
-| [API Docs](https://docs.rs/polymarket-hft) | Full API reference           |
+| Document                                   | Description                     |
+| ------------------------------------------ | ------------------------------- |
+| [Client Documentation](./docs/client.md)   | Usage guide for all API clients |
+| [CLI Guide](./docs/cli.md)                 | Command-line interface usage    |
+| [CLI Examples](./docs/cli_examples.md)     | Practical CLI examples          |
+| [Architecture](./docs/architecture.md)     | System design and HFT engine    |
+| [Policy Engine](./docs/policy.md)          | User-defined policy DSL         |
+| [API Docs](https://docs.rs/polymarket-hft) | Full API reference              |
 
 ## Quick Start
 
@@ -66,7 +67,7 @@ See [Architecture](./docs/architecture.md) and [Policy Engine](./docs/policy.md)
 
 ```toml
 [dependencies]
-polymarket-hft = "0.0.5"
+polymarket-hft = "0.0.6"
 ```
 
 ```rust
@@ -89,7 +90,9 @@ cargo run -- gamma get-markets -l 5
 cargo run -- clob get-orderbook -m "0x..."
 ```
 
-See [Library Guide](./docs/library.md) and [CLI Guide](./docs/cli.md) for details.
+> [!NOTE] > **CoinMarketCap Integration**: The CoinMarketCap client is designed for the **Basic Plan** (free tier). You will need an API key from [CoinMarketCap Developer Portal](https://coinmarketcap.com/api/documentation/v1/).
+
+See [Client Documentation](./docs/client.md) and [CLI Guide](./docs/cli.md) for details.
 
 ## Roadmap
 
