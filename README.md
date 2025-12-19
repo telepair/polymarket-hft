@@ -27,6 +27,7 @@ Clients → Ingestors → Dispatcher → Policy Engine → Action Executor
 | Polymarket CLOB          | REST + WebSocket | ✅     |
 | Polymarket RTDS          | WebSocket        | ✅     |
 | CoinMarketCap Standard   | REST             | ✅     |
+| CoinGecko Demo           | REST             | ✅     |
 | Alternative.me Crypto    | REST             | ✅     |
 
 **Storage** - State Manager and Archiver are implemented using Redis and TimescaleDB.
@@ -91,7 +92,10 @@ cargo run -- gamma get-markets -l 5
 cargo run -- clob get-orderbook -m "0x..."
 ```
 
-> [!NOTE] > **CoinMarketCap Integration**: The CoinMarketCap client is designed for the **Basic Plan** (free tier). You will need an API key from [CoinMarketCap Developer Portal](https://coinmarketcap.com/api/documentation/v1/).
+> [!NOTE]
+>
+> - **CoinMarketCap**: Requires API key from [CoinMarketCap Developer Portal](https://coinmarketcap.com/api/). Set `CMC_API_KEY` env var.
+> - **CoinGecko**: Requires API key from [CoinGecko](https://www.coingecko.com/en/api). Set `CG_API_KEY` env var.
 
 See [Client Documentation](./docs/client.md) and [CLI Guide](./docs/cli.md) for details.
 

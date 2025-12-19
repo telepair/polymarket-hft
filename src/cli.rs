@@ -2,6 +2,7 @@ pub mod alternativeme;
 pub mod clob;
 pub mod clob_ws;
 pub mod cmc;
+pub mod coingecko;
 pub mod common;
 pub mod data;
 pub mod gamma;

@@ -3,7 +3,7 @@ use tracing_subscriber::EnvFilter;
 
 mod cli;
 
-use cli::{alternativeme, clob, clob_ws, cmc, data, gamma, rtds};
+use cli::{alternativeme, clob, clob_ws, cmc, coingecko, data, gamma, rtds};
 
 #[derive(Parser)]
 #[command(name = "polymarket")]
@@ -34,6 +34,9 @@ enum Commands {
     /// CoinMarketCap API commands (requires CMC_API_KEY)
     #[command(subcommand)]
     Cmc(cmc::CmcCommands),
+    /// CoinGecko API commands (requires CG_API_KEY)
+    #[command(subcommand)]
+    Cg(coingecko::CgCommands),
     /// Alternative.me Crypto API commands (free, no API key)
     #[command(subcommand)]
     AlternativeMe(alternativeme::AlternativeMeCommands),
@@ -67,6 +70,9 @@ async fn main() -> anyhow::Result<()> {
         }
         Commands::Cmc(cmc_cmd) => {
             cmc::handle(cmc_cmd).await?;
+        }
+        Commands::Cg(cg_cmd) => {
+            coingecko::handle(cg_cmd).await?;
         }
         Commands::AlternativeMe(alt_cmd) => {
             alternativeme::handle(alt_cmd).await?;

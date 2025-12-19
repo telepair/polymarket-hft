@@ -264,6 +264,116 @@ polymarket cmc price-convert -a 100 -s ETH -c USD,EUR,GBP
 
 ---
 
+## CoinGecko API
+
+> [!NOTE]
+> Requires `CG_API_KEY` environment variable. Get a free API key at: <https://www.coingecko.com/en/api>
+
+### Simple Price
+
+```bash
+# Get Bitcoin price in USD
+polymarket cg simple-price --ids bitcoin --vs-currencies usd
+
+# Get multiple coins with additional data
+polymarket cg simple-price --ids bitcoin,ethereum --vs-currencies usd,eur \
+  --include-market-cap --include-24hr-change
+```
+
+### Coins List
+
+```bash
+# List all supported coins (limited output)
+polymarket cg coins-list --limit 10
+
+# Include platform addresses
+polymarket cg coins-list --include-platform --limit 5
+```
+
+### Coins Markets
+
+```bash
+# Get top 10 coins by market cap
+polymarket cg coins-markets --vs-currency usd --per-page 10
+
+# Filter by specific coins with price change data
+polymarket cg coins-markets --vs-currency usd --ids bitcoin,ethereum \
+  --price-change-percentage 1h,24h,7d
+```
+
+### Trending
+
+```bash
+# Get trending coins, NFTs, and categories
+polymarket cg trending
+```
+
+### Global
+
+```bash
+# Get global cryptocurrency market stats
+polymarket cg global
+```
+
+### Exchanges
+
+```bash
+# Get list of exchanges (first 5)
+polymarket cg exchanges --per-page 5
+
+# Get exchanges with pagination
+polymarket cg exchanges --per-page 10 --page 2
+```
+
+### Supported VS Currencies
+
+```bash
+# List all supported vs currencies
+polymarket cg supported-vs-currencies
+```
+
+### Coin Detail
+
+```bash
+# Get detailed coin data
+polymarket cg coin --id bitcoin
+
+# Get coin data without localization
+polymarket cg coin --id ethereum --no-localization
+```
+
+### Market Chart
+
+```bash
+# Get 1-day historical market chart
+polymarket cg market-chart --id bitcoin --vs-currency usd --days 1
+
+# Get 7-day historical data
+polymarket cg market-chart --id ethereum --vs-currency eur --days 7
+```
+
+### History
+
+```bash
+# Get historical data at specific date (dd-mm-yyyy format)
+polymarket cg history --id bitcoin --date 30-12-2024
+
+# Without localization
+polymarket cg history --id ethereum --date 01-01-2024 --no-localization
+```
+
+### OHLC
+
+```bash
+# Get 1-day OHLC candlestick data
+polymarket cg ohlc --id bitcoin --vs-currency usd --days 1
+
+# Get 7-day OHLC data
+polymarket cg ohlc --id ethereum --vs-currency eur --days 7
+```
+
+---
+
 ## Alternative.me API
 
 > [!NOTE]
@@ -366,35 +476,46 @@ polymarket rtds subscribe -t comments -n 5 -o compact
 
 ## Quick Reference
 
-| API     | Command            | Required Args             |
-| ------- | ------------------ | ------------------------- |
-| Data    | health             | -                         |
-| Data    | get-user-positions | `-u <ADDRESS>`            |
-| Data    | get-trades         | (optional filters)        |
-| Data    | get-open-interest  | `-m <MARKET_ID>`          |
-| Gamma   | get-sports         | -                         |
-| Gamma   | get-events         | (optional filters)        |
-| Gamma   | get-markets        | (optional filters)        |
-| Gamma   | get-event-by-id    | `<EVENT_ID>`              |
-| Gamma   | get-market-by-id   | `<MARKET_ID>`             |
-| Gamma   | search             | `"<QUERY>"`               |
-| CLOB    | get-order-book     | `-t <TOKEN_ID>`           |
-| CLOB    | get-market-price   | `-t <TOKEN_ID> -s <SIDE>` |
-| CLOB    | get-midpoint-price | `-t <TOKEN_ID>`           |
-| CLOB    | get-price-history  | `-m <TOKEN_ID>`           |
-| CLOB WS | market             | `-a <ASSET_IDS>`          |
-| CLOB WS | user               | `-m <MARKET_IDS>` + auth  |
-| CMC     | get-listings       | (optional filters)        |
-| CMC     | get-global-metrics | (optional)                |
-| CMC     | get-fear-and-greed | -                         |
-| CMC     | get-key-info       | -                         |
-| CMC     | get-map            | (optional filters)        |
-| CMC     | get-info           | `-s <SYMBOL>` or `--id`   |
-| CMC     | get-quotes         | `-s <SYMBOL>` or `--id`   |
-| CMC     | get-fiat-map       | (optional filters)        |
-| CMC     | price-convert      | `-a <AMOUNT> -s <SYMBOL>` |
-| Alt.me  | get-ticker         | (optional filters)        |
-| Alt.me  | get-ticker-by-id   | `<ID>` or `<SLUG>`        |
-| Alt.me  | get-global         | (optional)                |
-| Alt.me  | get-fear-and-greed | (optional)                |
-| RTDS    | subscribe          | `-t <TOPIC>`              |
+| API     | Command                 | Required Args             |
+| ------- | ----------------------- | ------------------------- |
+| Data    | health                  | -                         |
+| Data    | get-user-positions      | `-u <ADDRESS>`            |
+| Data    | get-trades              | (optional filters)        |
+| Data    | get-open-interest       | `-m <MARKET_ID>`          |
+| Gamma   | get-sports              | -                         |
+| Gamma   | get-events              | (optional filters)        |
+| Gamma   | get-markets             | (optional filters)        |
+| Gamma   | get-event-by-id         | `<EVENT_ID>`              |
+| Gamma   | get-market-by-id        | `<MARKET_ID>`             |
+| Gamma   | search                  | `"<QUERY>"`               |
+| CLOB    | get-order-book          | `-t <TOKEN_ID>`           |
+| CLOB    | get-market-price        | `-t <TOKEN_ID> -s <SIDE>` |
+| CLOB    | get-midpoint-price      | `-t <TOKEN_ID>`           |
+| CLOB    | get-price-history       | `-m <TOKEN_ID>`           |
+| CLOB WS | market                  | `-a <ASSET_IDS>`          |
+| CLOB WS | user                    | `-m <MARKET_IDS>` + auth  |
+| CMC     | get-listings            | (optional filters)        |
+| CMC     | get-global-metrics      | (optional)                |
+| CMC     | get-fear-and-greed      | -                         |
+| CMC     | get-key-info            | -                         |
+| CMC     | get-map                 | (optional filters)        |
+| CMC     | get-info                | `-s <SYMBOL>` or `--id`   |
+| CMC     | get-quotes              | `-s <SYMBOL>` or `--id`   |
+| CMC     | get-fiat-map            | (optional filters)        |
+| CMC     | price-convert           | `-a <AMOUNT> -s <SYMBOL>` |
+| CG      | simple-price            | `--ids <IDS>`             |
+| CG      | supported-vs-currencies | -                         |
+| CG      | coins-list              | (optional)                |
+| CG      | coins-markets           | `--vs-currency <CUR>`     |
+| CG      | exchanges               | (optional)                |
+| CG      | coin                    | `--id <ID>`               |
+| CG      | market-chart            | `--id <ID> --vs-currency` |
+| CG      | history                 | `--id <ID> --date <DATE>` |
+| CG      | ohlc                    | `--id <ID> --vs-currency` |
+| CG      | trending                | -                         |
+| CG      | global                  | -                         |
+| Alt.me  | get-ticker              | (optional filters)        |
+| Alt.me  | get-ticker-by-id        | `<ID>` or `<SLUG>`        |
+| Alt.me  | get-global              | (optional)                |
+| Alt.me  | get-fear-and-greed      | (optional)                |
+| RTDS    | subscribe               | `-t <TOPIC>`              |

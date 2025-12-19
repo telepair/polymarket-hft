@@ -13,6 +13,7 @@ The library provides clients for the following services:
 | **Polymarket CLOB**  | `client::polymarket::clob`  | REST / WebSocket | Order book, trading, price history.                    |
 | **Polymarket RTDS**  | `client::polymarket::rtds`  | WebSocket        | Real-time data streaming (prices, activity).           |
 | **CoinMarketCap**    | `client::coinmarketcap`     | REST             | Cryptocurrency listings, global metrics, fear & greed. |
+| **CoinGecko**        | `client::coingecko`         | REST             | Coin prices, markets, trending, global stats.          |
 | **Alternative.me**   | `client::alternativeme`     | REST             | Free crypto API: ticker, global, fear & greed.         |
 
 ## Common Features
@@ -154,6 +155,79 @@ Common error codes:
 | 402  | Payment required (plan limit exceeded) |
 | 429  | Rate limit exceeded                    |
 | 500  | Internal server error                  |
+
+---
+
+## CoinGecko Client
+
+The CoinGecko client provides access to the Demo API for cryptocurrency market data.
+
+> [!IMPORTANT] > **API Key Required**: Register at [CoinGecko](https://www.coingecko.com/en/api) to get a free API key. The Demo Plan includes:
+>
+> - **10,000 calls/month**
+> - **30 calls/minute** rate limit
+
+### Quick Start
+
+```rust
+use polymarket_hft::client::coingecko::{
+    Client,
+    SimplePriceRequest,
+    CoinsMarketsRequest
+};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Initialize with your API Key
+    let client = Client::new("YOUR_CG_API_KEY");
+
+    // 1. Get Simple Price for Bitcoin
+    let prices = client.get_simple_price(SimplePriceRequest {
+        ids: "bitcoin,ethereum".to_string(),
+        vs_currencies: "usd".to_string(),
+        include_24hr_change: Some(true),
+        ..Default::default()
+    }).await?;
+    println!("BTC: ${:?}", prices.get("bitcoin"));
+
+    // 2. Get Market Data (Top 10 by Market Cap)
+    let markets = client.get_coins_markets(CoinsMarketsRequest {
+        vs_currency: "usd".to_string(),
+        per_page: Some(10),
+        ..Default::default()
+    }).await?;
+    for coin in markets {
+        println!("{}: ${:.2}", coin.name, coin.current_price.unwrap_or(0.0));
+    }
+
+    // 3. Get Trending Coins
+    let trending = client.get_trending().await?;
+    println!("Trending: {}", trending.coins[0].item.name);
+
+    // 4. Get Global Market Data
+    let global = client.get_global().await?;
+    println!("BTC Dominance: {:.1}%",
+        global.data.market_cap_percentage.get("btc").unwrap_or(&0.0));
+
+    Ok(())
+}
+```
+
+### Endpoints
+
+| Method                        | Endpoint                          | Description                       |
+| ----------------------------- | --------------------------------- | --------------------------------- |
+| `get_simple_price`            | `/simple/price`                   | Get prices for coin IDs           |
+| `get_supported_vs_currencies` | `/simple/supported_vs_currencies` | List supported vs currencies      |
+| `get_coins_list`              | `/coins/list`                     | List all supported coins          |
+| `get_coins_markets`           | `/coins/markets`                  | Market data with pagination       |
+| `get_coin`                    | `/coins/{id}`                     | Detailed coin data by ID          |
+| `get_coin_market_chart`       | `/coins/{id}/market_chart`        | Historical price/volume/marketcap |
+| `get_coin_history`            | `/coins/{id}/history`             | Historical data at specific date  |
+| `get_coin_ohlc`               | `/coins/{id}/ohlc`                | OHLC candlestick data             |
+| `get_exchanges`               | `/exchanges`                      | List all exchanges                |
+| `get_trending`                | `/search/trending`                | Trending coins, NFTs, categories  |
+| `get_global`                  | `/global`                         | Global cryptocurrency stats       |
 
 ---
 
