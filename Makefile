@@ -55,7 +55,7 @@ test-integration:                     ## Run integration tests
 
 test-all:                             ## Run all tests (unit + integration + doc)
 	@echo "Running all tests..."
-	@$(CARGO) test $(CARGO_FLAGS) --all-targets --all-features
+	@$(CARGO) test $(CARGO_FLAGS) --all-targets --all-features -- --include-ignored
 
 # =============================================================================
 # Documentation

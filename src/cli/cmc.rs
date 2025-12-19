@@ -8,8 +8,9 @@ use crate::cli::common::write_json_output;
 
 use clap::{Args, Subcommand};
 use polymarket_hft::client::coinmarketcap::{
-    Client, GetFearAndGreedLatestRequest, GetGlobalMetricsQuotesLatestRequest,
-    GetListingsLatestRequest,
+    Client, GetCryptocurrencyInfoRequest, GetCryptocurrencyMapRequest,
+    GetFearAndGreedLatestRequest, GetFiatMapRequest, GetGlobalMetricsQuotesLatestRequest,
+    GetListingsLatestRequest, GetQuotesLatestRequest, PriceConversionRequest,
 };
 
 /// CoinMarketCap API commands (requires CMC_API_KEY env var)
@@ -31,6 +32,31 @@ pub enum CmcCommands {
     GetFearAndGreed,
     /// Get API key usage information
     GetKeyInfo,
+    /// Get cryptocurrency ID map
+    GetMap {
+        #[command(flatten)]
+        params: GetMapArgs,
+    },
+    /// Get cryptocurrency metadata (logo, description, URLs)
+    GetInfo {
+        #[command(flatten)]
+        params: GetInfoArgs,
+    },
+    /// Get latest quotes for specific cryptocurrencies
+    GetQuotes {
+        #[command(flatten)]
+        params: GetQuotesArgs,
+    },
+    /// Get fiat currency ID map
+    GetFiatMap {
+        #[command(flatten)]
+        params: GetFiatMapArgs,
+    },
+    /// Convert amount between currencies
+    PriceConvert {
+        #[command(flatten)]
+        params: PriceConvertArgs,
+    },
 }
 
 #[derive(Args, Debug, Clone)]
@@ -68,6 +94,92 @@ pub struct GetListingsArgs {
     /// Tag filter (defi, filesharing, etc.)
     #[arg(long)]
     pub tag: Option<String>,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct GetMapArgs {
+    /// Number of results to return
+    #[arg(short, long, default_value_t = 100)]
+    pub limit: i32,
+    /// Starting position for pagination (1-based)
+    #[arg(long)]
+    pub start: Option<i32>,
+    /// Listing status: active, inactive, untracked
+    #[arg(long)]
+    pub listing_status: Option<String>,
+    /// Filter by symbol (comma-separated, e.g., BTC,ETH)
+    #[arg(short, long)]
+    pub symbol: Option<String>,
+    /// Sort field: id, cmc_rank
+    #[arg(long)]
+    pub sort: Option<String>,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct GetInfoArgs {
+    /// CoinMarketCap ID (comma-separated for multiple)
+    #[arg(long)]
+    pub id: Option<String>,
+    /// Cryptocurrency slug (comma-separated for multiple)
+    #[arg(long)]
+    pub slug: Option<String>,
+    /// Cryptocurrency symbol (comma-separated for multiple, e.g., BTC,ETH)
+    #[arg(short, long)]
+    pub symbol: Option<String>,
+    /// Skip invalid lookups
+    #[arg(long)]
+    pub skip_invalid: bool,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct GetQuotesArgs {
+    /// CoinMarketCap ID (comma-separated for multiple)
+    #[arg(long)]
+    pub id: Option<String>,
+    /// Cryptocurrency slug (comma-separated for multiple)
+    #[arg(long)]
+    pub slug: Option<String>,
+    /// Cryptocurrency symbol (comma-separated for multiple, e.g., BTC,ETH)
+    #[arg(short, long)]
+    pub symbol: Option<String>,
+    /// Currency for quotes (e.g., USD, EUR)
+    #[arg(short, long)]
+    pub convert: Option<String>,
+    /// Skip invalid lookups
+    #[arg(long)]
+    pub skip_invalid: bool,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct GetFiatMapArgs {
+    /// Number of results to return
+    #[arg(short, long, default_value_t = 100)]
+    pub limit: i32,
+    /// Starting position for pagination (1-based)
+    #[arg(long)]
+    pub start: Option<i32>,
+    /// Sort field: id, name
+    #[arg(long)]
+    pub sort: Option<String>,
+    /// Include precious metals (gold, silver, etc.)
+    #[arg(long)]
+    pub include_metals: bool,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct PriceConvertArgs {
+    /// Amount to convert
+    #[arg(short, long)]
+    pub amount: f64,
+    /// Source currency CoinMarketCap ID
+    #[arg(long)]
+    pub id: Option<i32>,
+    /// Source currency symbol (e.g., BTC)
+    #[arg(short, long)]
+    pub symbol: Option<String>,
+    /// Target currency symbol(s) for conversion (comma-separated, e.g., USD,EUR)
+    #[arg(short, long, default_value = "USD")]
+    pub convert: String,
 }
 
 fn get_api_key() -> anyhow::Result<String> {
@@ -118,6 +230,74 @@ pub async fn handle(command: &CmcCommands) -> anyhow::Result<()> {
         }
         CmcCommands::GetKeyInfo => {
             let response = client.get_key_info().await?;
+            write_json_output(&response)?;
+        }
+        CmcCommands::GetMap { params } => {
+            let request = GetCryptocurrencyMapRequest {
+                start: params.start,
+                limit: Some(params.limit),
+                listing_status: params.listing_status.clone(),
+                symbol: params.symbol.clone(),
+                sort: params.sort.clone(),
+                ..Default::default()
+            };
+            let response = client.get_cryptocurrency_map(request).await?;
+            write_json_output(&response)?;
+        }
+        CmcCommands::GetInfo { params } => {
+            let request = GetCryptocurrencyInfoRequest {
+                id: params.id.clone(),
+                slug: params.slug.clone(),
+                symbol: params.symbol.clone(),
+                skip_invalid: if params.skip_invalid {
+                    Some(true)
+                } else {
+                    None
+                },
+                ..Default::default()
+            };
+            let response = client.get_cryptocurrency_info(request).await?;
+            write_json_output(&response)?;
+        }
+        CmcCommands::GetQuotes { params } => {
+            let request = GetQuotesLatestRequest {
+                id: params.id.clone(),
+                slug: params.slug.clone(),
+                symbol: params.symbol.clone(),
+                convert: params.convert.clone(),
+                skip_invalid: if params.skip_invalid {
+                    Some(true)
+                } else {
+                    None
+                },
+                ..Default::default()
+            };
+            let response = client.get_quotes_latest(request).await?;
+            write_json_output(&response)?;
+        }
+        CmcCommands::GetFiatMap { params } => {
+            let request = GetFiatMapRequest {
+                start: params.start,
+                limit: Some(params.limit),
+                sort: params.sort.clone(),
+                include_metals: if params.include_metals {
+                    Some(true)
+                } else {
+                    None
+                },
+            };
+            let response = client.get_fiat_map(request).await?;
+            write_json_output(&response)?;
+        }
+        CmcCommands::PriceConvert { params } => {
+            let request = PriceConversionRequest {
+                amount: params.amount,
+                id: params.id,
+                symbol: params.symbol.clone(),
+                convert: Some(params.convert.clone()),
+                ..Default::default()
+            };
+            let response = client.get_price_conversion(request).await?;
             write_json_output(&response)?;
         }
     }

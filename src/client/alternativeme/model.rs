@@ -35,26 +35,6 @@ pub struct Metadata {
 }
 
 // =============================================================================
-// Listings (/v2/listings/)
-// =============================================================================
-
-/// A cryptocurrency listing entry.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Listing {
-    pub id: String,
-    pub name: String,
-    pub symbol: String,
-    pub website_slug: String,
-}
-
-/// Response for /v2/listings/ endpoint.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ListingsResponse {
-    pub data: Vec<Listing>,
-    pub metadata: Metadata,
-}
-
-// =============================================================================
 // Ticker (/v2/ticker/)
 // =============================================================================
 

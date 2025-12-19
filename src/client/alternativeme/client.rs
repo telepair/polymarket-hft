@@ -71,20 +71,6 @@ impl Client {
         Ok(())
     }
 
-    /// Get all cryptocurrency listings.
-    ///
-    /// Returns a list of all cryptocurrencies with their id, name, symbol, and slug.
-    pub async fn get_listings(&self) -> Result<ListingsResponse, AlternativeMeError> {
-        let response: ListingsResponse = self
-            .request(Method::GET, "/v2/listings/")
-            .send()
-            .await?
-            .json()
-            .await?;
-        Self::check_metadata_error(&response.metadata.error)?;
-        Ok(response)
-    }
-
     /// Get cryptocurrency ticker data.
     ///
     /// Returns price, volume, market cap, and percentage changes for cryptocurrencies.
@@ -172,34 +158,6 @@ mod tests {
     use super::*;
     use wiremock::matchers::{method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
-
-    #[tokio::test]
-    async fn test_get_listings() {
-        let mock_server = MockServer::start().await;
-
-        let response_body = r#"{
-            "data": [
-                {"id": "1", "name": "Bitcoin", "symbol": "BTC", "website_slug": "bitcoin"},
-                {"id": "2", "name": "Litecoin", "symbol": "LTC", "website_slug": "litecoin"}
-            ],
-            "metadata": {"timestamp": 1537430627, "num_cryptocurrencies": 935, "error": null}
-        }"#;
-
-        Mock::given(method("GET"))
-            .and(path("/v2/listings/"))
-            .respond_with(ResponseTemplate::new(200).set_body_string(response_body))
-            .mount(&mock_server)
-            .await;
-
-        let client = Client::new().with_base_url(mock_server.uri());
-        let result = client.get_listings().await;
-
-        assert!(result.is_ok());
-        let listings = result.unwrap();
-        assert_eq!(listings.data.len(), 2);
-        assert_eq!(listings.data[0].name, "Bitcoin");
-        assert_eq!(listings.data[0].symbol, "BTC");
-    }
 
     #[tokio::test]
     async fn test_get_ticker() {
@@ -370,32 +328,5 @@ mod tests {
         assert_eq!(fng.data.len(), 1);
         assert_eq!(fng.data[0].value, "40");
         assert_eq!(fng.data[0].value_classification, "Fear");
-    }
-
-    #[tokio::test]
-    async fn test_api_error_handling() {
-        let mock_server = MockServer::start().await;
-
-        let response_body = r#"{
-            "data": [],
-            "metadata": {"timestamp": 1537430627, "error": "Invalid request"}
-        }"#;
-
-        Mock::given(method("GET"))
-            .and(path("/v2/listings/"))
-            .respond_with(ResponseTemplate::new(200).set_body_string(response_body))
-            .mount(&mock_server)
-            .await;
-
-        let client = Client::new().with_base_url(mock_server.uri());
-        let result = client.get_listings().await;
-
-        assert!(result.is_err());
-        match result {
-            Err(AlternativeMeError::Api(msg)) => {
-                assert_eq!(msg, "Invalid request");
-            }
-            _ => panic!("Expected API error"),
-        }
     }
 }

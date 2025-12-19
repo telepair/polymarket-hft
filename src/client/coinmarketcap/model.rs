@@ -62,7 +62,7 @@ pub struct Platform {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Quote {
-    pub price: f64,
+    pub price: Option<f64>,
     pub volume_24h: Option<f64>,
     pub volume_change_24h: Option<f64>,
     pub percent_change_1h: Option<f64>,
@@ -266,4 +266,290 @@ pub struct KeyInfoData {
 pub struct KeyInfoResponse {
     pub status: Status,
     pub data: KeyInfoData,
+}
+
+// =============================================================================
+// Cryptocurrency Map
+// =============================================================================
+
+/// A single cryptocurrency in the map response.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CryptocurrencyMapItem {
+    pub id: i32,
+    pub rank: Option<i32>,
+    pub name: String,
+    pub symbol: String,
+    pub slug: String,
+    pub is_active: i32,
+    #[serde(default)]
+    pub first_historical_data: Option<String>,
+    #[serde(default)]
+    pub last_historical_data: Option<String>,
+    #[serde(default)]
+    pub platform: Option<Platform>,
+}
+
+/// Response for /v1/cryptocurrency/map endpoint.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CryptocurrencyMapResponse {
+    pub status: Status,
+    pub data: Vec<CryptocurrencyMapItem>,
+}
+
+/// Request parameters for /v1/cryptocurrency/map endpoint.
+#[derive(Debug, Clone, Default)]
+pub struct GetCryptocurrencyMapRequest {
+    /// Filter by listing status: "active", "inactive", or "untracked".
+    pub listing_status: Option<String>,
+    /// Offset for pagination (1-based).
+    pub start: Option<i32>,
+    /// Number of results to return.
+    pub limit: Option<i32>,
+    /// Sort field: "id" or "cmc_rank".
+    pub sort: Option<String>,
+    /// Filter by symbol (comma-separated).
+    pub symbol: Option<String>,
+    /// Auxiliary fields to include: "platform", "first_historical_data", "last_historical_data", "is_active".
+    pub aux: Option<String>,
+}
+
+// =============================================================================
+// Cryptocurrency Info (Metadata)
+// =============================================================================
+
+/// URLs associated with a cryptocurrency.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CryptocurrencyUrls {
+    #[serde(default)]
+    pub website: Vec<String>,
+    #[serde(default)]
+    pub twitter: Vec<String>,
+    #[serde(default)]
+    pub message_board: Vec<String>,
+    #[serde(default)]
+    pub chat: Vec<String>,
+    #[serde(default)]
+    pub facebook: Vec<String>,
+    #[serde(default)]
+    pub explorer: Vec<String>,
+    #[serde(default)]
+    pub reddit: Vec<String>,
+    #[serde(default)]
+    pub technical_doc: Vec<String>,
+    #[serde(default)]
+    pub source_code: Vec<String>,
+    #[serde(default)]
+    pub announcement: Vec<String>,
+}
+
+/// Cryptocurrency metadata/info.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CryptocurrencyInfo {
+    pub id: i32,
+    pub name: String,
+    pub symbol: String,
+    pub slug: String,
+    #[serde(default)]
+    pub category: Option<String>,
+    #[serde(default)]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub logo: Option<String>,
+    #[serde(default)]
+    pub subreddit: Option<String>,
+    #[serde(default)]
+    pub notice: Option<String>,
+    #[serde(default)]
+    pub tags: Option<Vec<String>>,
+    #[serde(default)]
+    pub platform: Option<Platform>,
+    #[serde(default)]
+    pub date_added: Option<String>,
+    #[serde(default)]
+    pub date_launched: Option<String>,
+    #[serde(default)]
+    pub urls: Option<CryptocurrencyUrls>,
+    #[serde(default)]
+    pub is_hidden: Option<i32>,
+    #[serde(default)]
+    pub infinite_supply: Option<bool>,
+    #[serde(default)]
+    pub self_reported_circulating_supply: Option<f64>,
+    #[serde(default)]
+    pub self_reported_market_cap: Option<f64>,
+    #[serde(default)]
+    pub self_reported_tags: Option<Vec<String>>,
+}
+
+/// Response for /v1/cryptocurrency/info endpoint.
+/// Data is keyed by the requested identifier (id, slug, or symbol).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CryptocurrencyInfoResponse {
+    pub status: Status,
+    pub data: HashMap<String, CryptocurrencyInfo>,
+}
+
+/// Request parameters for /v1/cryptocurrency/info endpoint.
+#[derive(Debug, Clone, Default)]
+pub struct GetCryptocurrencyInfoRequest {
+    /// CoinMarketCap cryptocurrency ID (comma-separated for multiple).
+    pub id: Option<String>,
+    /// Cryptocurrency slug (comma-separated for multiple).
+    pub slug: Option<String>,
+    /// Cryptocurrency symbol (comma-separated for multiple).
+    pub symbol: Option<String>,
+    /// Contract address (for tokens).
+    pub address: Option<String>,
+    /// Auxiliary fields: "urls", "logo", "description", "tags", "platform", "date_added", "notice".
+    pub aux: Option<String>,
+    /// Skip invalid lookups instead of erroring.
+    pub skip_invalid: Option<bool>,
+}
+
+// =============================================================================
+// Cryptocurrency Quotes Latest
+// =============================================================================
+
+/// Tag structured as an object (used in /v2/cryptocurrency/quotes/latest).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QuotesTag {
+    pub slug: String,
+    pub name: String,
+    pub category: String,
+}
+
+/// Cryptocurrency data returned by /v2/cryptocurrency/quotes/latest.
+/// Different from Cryptocurrency in listings: tags are objects, not strings.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QuotesCryptocurrency {
+    pub id: i32,
+    pub name: String,
+    pub symbol: String,
+    pub slug: String,
+    pub num_market_pairs: Option<i32>,
+    pub date_added: Option<String>,
+    #[serde(default)]
+    pub tags: Option<Vec<QuotesTag>>,
+    pub max_supply: Option<f64>,
+    pub circulating_supply: Option<f64>,
+    pub total_supply: Option<f64>,
+    pub infinite_supply: Option<bool>,
+    pub platform: Option<Platform>,
+    pub cmc_rank: Option<i32>,
+    pub self_reported_circulating_supply: Option<f64>,
+    pub self_reported_market_cap: Option<f64>,
+    pub tvl_ratio: Option<f64>,
+    pub last_updated: String,
+    pub quote: HashMap<String, Quote>,
+    #[serde(default)]
+    pub is_active: Option<i32>,
+    #[serde(default)]
+    pub is_fiat: Option<i32>,
+}
+
+/// Response for /v2/cryptocurrency/quotes/latest endpoint.
+/// Data is keyed by the requested identifier (id, slug, or symbol).
+/// Each key maps to an array of cryptocurrencies (symbol can match multiple coins).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QuotesLatestResponse {
+    pub status: Status,
+    pub data: HashMap<String, Vec<QuotesCryptocurrency>>,
+}
+
+/// Request parameters for /v2/cryptocurrency/quotes/latest endpoint.
+#[derive(Debug, Clone, Default)]
+pub struct GetQuotesLatestRequest {
+    /// CoinMarketCap cryptocurrency ID (comma-separated for multiple).
+    pub id: Option<String>,
+    /// Cryptocurrency slug (comma-separated for multiple).
+    pub slug: Option<String>,
+    /// Cryptocurrency symbol (comma-separated for multiple).
+    pub symbol: Option<String>,
+    /// Currency for price conversion (e.g., "USD", "EUR").
+    pub convert: Option<String>,
+    /// CoinMarketCap ID for conversion currency.
+    pub convert_id: Option<String>,
+    /// Auxiliary fields to include.
+    pub aux: Option<String>,
+    /// Skip invalid lookups instead of erroring.
+    pub skip_invalid: Option<bool>,
+}
+
+// =============================================================================
+// Fiat Currency Map
+// =============================================================================
+
+/// A single fiat currency in the map response.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FiatMapItem {
+    pub id: i32,
+    pub name: String,
+    pub sign: String,
+    pub symbol: String,
+}
+
+/// Response for /v1/fiat/map endpoint.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FiatMapResponse {
+    pub status: Status,
+    pub data: Vec<FiatMapItem>,
+}
+
+/// Request parameters for /v1/fiat/map endpoint.
+#[derive(Debug, Clone, Default)]
+pub struct GetFiatMapRequest {
+    /// Offset for pagination (1-based).
+    pub start: Option<i32>,
+    /// Number of results to return.
+    pub limit: Option<i32>,
+    /// Sort field: "id" or "name".
+    pub sort: Option<String>,
+    /// Include precious metals (gold, silver, etc.).
+    pub include_metals: Option<bool>,
+}
+
+// =============================================================================
+// Price Conversion
+// =============================================================================
+
+/// Conversion quote with price and timestamp.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConversionQuote {
+    pub price: f64,
+    pub last_updated: String,
+}
+
+/// Price conversion result data.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PriceConversionData {
+    pub id: i32,
+    pub symbol: String,
+    pub name: String,
+    pub amount: f64,
+    pub last_updated: String,
+    pub quote: HashMap<String, ConversionQuote>,
+}
+
+/// Response for /v1/tools/price-conversion endpoint.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PriceConversionResponse {
+    pub status: Status,
+    pub data: PriceConversionData,
+}
+
+/// Request parameters for /v1/tools/price-conversion endpoint.
+#[derive(Debug, Clone, Default)]
+pub struct PriceConversionRequest {
+    /// Amount of the source currency to convert.
+    pub amount: f64,
+    /// CoinMarketCap ID of the source currency.
+    pub id: Option<i32>,
+    /// Symbol of the source currency.
+    pub symbol: Option<String>,
+    /// Target currency symbol(s) for conversion (comma-separated).
+    pub convert: Option<String>,
+    /// Target CoinMarketCap ID(s) for conversion (comma-separated).
+    pub convert_id: Option<String>,
+    /// Historical time for conversion (ISO 8601 timestamp).
+    pub time: Option<String>,
 }

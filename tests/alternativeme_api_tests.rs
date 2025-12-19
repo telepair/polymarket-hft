@@ -8,34 +8,6 @@ use polymarket_hft::client::alternativeme::{
 };
 
 // =============================================================================
-// Listings Tests
-// =============================================================================
-
-#[tokio::test]
-#[ignore = "requires network access to live API"]
-async fn test_get_listings() {
-    let client = Client::new();
-    let result = client.get_listings().await;
-
-    assert!(result.is_ok(), "Failed to get listings: {:?}", result.err());
-
-    let listings = result.unwrap();
-    assert!(!listings.data.is_empty(), "Listings should not be empty");
-
-    // Check first listing has required fields
-    let first = &listings.data[0];
-    assert!(!first.id.is_empty());
-    assert!(!first.name.is_empty());
-    assert!(!first.symbol.is_empty());
-
-    println!("Found {} cryptocurrencies", listings.data.len());
-    println!(
-        "First: {} ({}) - {}",
-        first.name, first.symbol, first.website_slug
-    );
-}
-
-// =============================================================================
 // Ticker Tests
 // =============================================================================
 

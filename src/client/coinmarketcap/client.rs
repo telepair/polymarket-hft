@@ -151,6 +151,134 @@ impl Client {
         Self::check_status(&data.status)?;
         Ok(data)
     }
+
+    /// Get cryptocurrency ID map.
+    ///
+    /// Returns a paginated list of all active cryptocurrencies with their CoinMarketCap IDs.
+    /// This is useful for mapping symbols to IDs for other API calls.
+    pub async fn get_cryptocurrency_map(
+        &self,
+        request: GetCryptocurrencyMapRequest,
+    ) -> Result<CryptocurrencyMapResponse, CmcError> {
+        let req = self.request(Method::GET, "/v1/cryptocurrency/map");
+
+        let req = add_optional_query!(req,
+            "listing_status" => request.listing_status,
+            "start" => request.start,
+            "limit" => request.limit,
+            "sort" => request.sort,
+            "symbol" => request.symbol,
+            "aux" => request.aux,
+        );
+
+        let response = req.send().await?;
+        let data = response.json::<CryptocurrencyMapResponse>().await?;
+        Self::check_status(&data.status)?;
+        Ok(data)
+    }
+
+    /// Get cryptocurrency metadata (info).
+    ///
+    /// Returns static metadata for one or more cryptocurrencies including
+    /// logo, description, URLs, and other details.
+    pub async fn get_cryptocurrency_info(
+        &self,
+        request: GetCryptocurrencyInfoRequest,
+    ) -> Result<CryptocurrencyInfoResponse, CmcError> {
+        let req = self.request(Method::GET, "/v1/cryptocurrency/info");
+
+        let skip_invalid_str = request.skip_invalid.map(|b| b.to_string());
+        let req = add_optional_query!(req,
+            "id" => request.id,
+            "slug" => request.slug,
+            "symbol" => request.symbol,
+            "address" => request.address,
+            "aux" => request.aux,
+            "skip_invalid" => skip_invalid_str,
+        );
+
+        let response = req.send().await?;
+        let data = response.json::<CryptocurrencyInfoResponse>().await?;
+        Self::check_status(&data.status)?;
+        Ok(data)
+    }
+
+    /// Get latest quotes for specific cryptocurrencies.
+    ///
+    /// Returns the latest market quote for one or more cryptocurrencies.
+    /// Use this to get prices for specific coins by ID, slug, or symbol.
+    pub async fn get_quotes_latest(
+        &self,
+        request: GetQuotesLatestRequest,
+    ) -> Result<QuotesLatestResponse, CmcError> {
+        let req = self.request(Method::GET, "/v2/cryptocurrency/quotes/latest");
+
+        let skip_invalid_str = request.skip_invalid.map(|b| b.to_string());
+        let req = add_optional_query!(req,
+            "id" => request.id,
+            "slug" => request.slug,
+            "symbol" => request.symbol,
+            "convert" => request.convert,
+            "convert_id" => request.convert_id,
+            "aux" => request.aux,
+            "skip_invalid" => skip_invalid_str,
+        );
+
+        let response = req.send().await?;
+        let data = response.json::<QuotesLatestResponse>().await?;
+        Self::check_status(&data.status)?;
+        Ok(data)
+    }
+
+    /// Get fiat currency ID map.
+    ///
+    /// Returns a list of all supported fiat currencies with their CoinMarketCap IDs.
+    pub async fn get_fiat_map(
+        &self,
+        request: GetFiatMapRequest,
+    ) -> Result<FiatMapResponse, CmcError> {
+        let req = self.request(Method::GET, "/v1/fiat/map");
+
+        let include_metals_str = request.include_metals.map(|b| b.to_string());
+        let req = add_optional_query!(req,
+            "start" => request.start,
+            "limit" => request.limit,
+            "sort" => request.sort,
+            "include_metals" => include_metals_str,
+        );
+
+        let response = req.send().await?;
+        let data = response.json::<FiatMapResponse>().await?;
+        Self::check_status(&data.status)?;
+        Ok(data)
+    }
+
+    /// Convert an amount of one currency into another.
+    ///
+    /// This endpoint can be used for crypto-to-crypto, fiat-to-fiat,
+    /// or crypto-to-fiat conversions.
+    pub async fn get_price_conversion(
+        &self,
+        request: PriceConversionRequest,
+    ) -> Result<PriceConversionResponse, CmcError> {
+        let req = self.request(Method::GET, "/v1/tools/price-conversion");
+
+        let amount_str = Some(request.amount.to_string());
+        let id_str = request.id.map(|i| i.to_string());
+        let req = add_optional_query!(req,
+            "amount" => amount_str,
+            "id" => id_str,
+            "symbol" => request.symbol,
+            "convert" => request.convert,
+            "convert_id" => request.convert_id,
+            "time" => request.time,
+        );
+
+        let response = req.send().await?;
+        let data = response.json::<PriceConversionResponse>().await?;
+        Self::check_status(&data.status)?;
+        Ok(data)
+    }
 }
 
 #[cfg(test)]

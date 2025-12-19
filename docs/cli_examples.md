@@ -220,6 +220,48 @@ polymarket cmc get-fear-and-greed
 polymarket cmc get-key-info
 ```
 
+### Cryptocurrency Map & Info
+
+```bash
+# Get cryptocurrency ID map (first 10)
+polymarket cmc get-map -l 10
+
+# Filter by symbols
+polymarket cmc get-map -s BTC,ETH,SOL
+
+# Get cryptocurrency metadata (logo, description, URLs)
+polymarket cmc get-info -s BTC
+
+# Get info for multiple coins
+polymarket cmc get-info --symbol BTC,ETH --skip-invalid
+```
+
+### Quotes
+
+```bash
+# Get latest quotes for specific coins
+polymarket cmc get-quotes -s BTC,ETH
+
+# With EUR conversion
+polymarket cmc get-quotes -s BTC --convert EUR
+```
+
+### Fiat Map & Price Conversion
+
+```bash
+# Get fiat currency ID map
+polymarket cmc get-fiat-map -l 10
+
+# Include precious metals (gold, silver)
+polymarket cmc get-fiat-map --include-metals
+
+# Convert 1 BTC to USD
+polymarket cmc price-convert -a 1 -s BTC -c USD
+
+# Convert to multiple currencies
+polymarket cmc price-convert -a 100 -s ETH -c USD,EUR,GBP
+```
+
 ---
 
 ## Alternative.me API
@@ -346,6 +388,11 @@ polymarket rtds subscribe -t comments -n 5 -o compact
 | CMC     | get-global-metrics | (optional)                |
 | CMC     | get-fear-and-greed | -                         |
 | CMC     | get-key-info       | -                         |
+| CMC     | get-map            | (optional filters)        |
+| CMC     | get-info           | `-s <SYMBOL>` or `--id`   |
+| CMC     | get-quotes         | `-s <SYMBOL>` or `--id`   |
+| CMC     | get-fiat-map       | (optional filters)        |
+| CMC     | price-convert      | `-a <AMOUNT> -s <SYMBOL>` |
 | Alt.me  | get-ticker         | (optional filters)        |
 | Alt.me  | get-ticker-by-id   | `<ID>` or `<SLUG>`        |
 | Alt.me  | get-global         | (optional)                |

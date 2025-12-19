@@ -105,6 +105,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 | `get_global_metrics_quotes_latest` | `/v1/global-metrics/quotes/latest`   | 1               | Global market metrics          |
 | `get_fear_and_greed_latest`        | `/v3/fear-and-greed/latest`          | 1               | Fear and Greed Index           |
 | `get_key_info`                     | `/v1/key/info`                       | 0               | API key usage info             |
+| `get_cryptocurrency_map`           | `/v1/cryptocurrency/map`             | 1               | Cryptocurrency ID mapping      |
+| `get_cryptocurrency_info`          | `/v1/cryptocurrency/info`            | 1               | Cryptocurrency metadata        |
+| `get_quotes_latest`                | `/v2/cryptocurrency/quotes/latest`   | 1               | Quotes for specific coins      |
+| `get_fiat_map`                     | `/v1/fiat/map`                       | 1               | Fiat currency ID mapping       |
+| `get_price_conversion`             | `/v1/tools/price-conversion`         | 1               | Currency price conversion      |
 
 ### Request Parameters
 
