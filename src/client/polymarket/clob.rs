@@ -22,7 +22,7 @@
 
 mod auth;
 mod client;
-mod markets;
+
 pub mod order_utils;
 pub mod orderbook;
 mod pricing;
@@ -33,10 +33,7 @@ mod types;
 pub mod ws;
 
 pub use client::{Client, DEFAULT_BASE_URL};
-pub use markets::{
-    GetMarketsRequest, Market, MarketToken, MarketTradeEvent, MarketsPaginatedResponse,
-    SimplifiedMarket,
-};
+
 pub use order_utils::{ExchangeOrderBuilder, OrderData, OrderSide, SignatureType, SignedOrder};
 pub use orderbook::{GetOrderBooksRequestItem, OrderBookSummary, PriceLevel};
 pub use pricing::{

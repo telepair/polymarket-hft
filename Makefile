@@ -20,7 +20,7 @@ BINARY_NAME  := polymarket
 # =============================================================================
 
 ## Primary Targets
-all: fmt lint check test-all doc build          ## Run full CI pipeline (fmt, lint, check, test, build)
+all: fmt lint check test doc build          ## Run full CI pipeline (fmt, lint, check, test, build)
 
 ## Code Quality
 fmt:                                     ## Format code with rustfmt

@@ -284,8 +284,8 @@ async fn test_get_coin_history() {
     );
 
     let response = result.unwrap();
-    assert_eq!(response.id, "bitcoin");
-    assert_eq!(response.symbol, "btc");
+    assert_eq!(response.id, Some("bitcoin".to_string()));
+    assert_eq!(response.symbol, Some("btc".to_string()));
     assert!(response.market_data.is_some(), "Should have market data");
 }
 

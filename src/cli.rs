@@ -5,5 +5,6 @@ pub mod cmc;
 pub mod coingecko;
 pub mod common;
 pub mod data;
+pub mod ds;
 pub mod gamma;
 pub mod rtds;

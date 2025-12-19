@@ -487,9 +487,12 @@ pub struct CoinHistoryRequest {
 /// Response from /coins/{id}/history endpoint.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CoinHistoryResponse {
-    pub id: String,
-    pub symbol: String,
-    pub name: String,
+    #[serde(default)]
+    pub id: Option<String>,
+    #[serde(default)]
+    pub symbol: Option<String>,
+    #[serde(default)]
+    pub name: Option<String>,
     #[serde(default)]
     pub image: Option<CoinImage>,
     #[serde(default)]

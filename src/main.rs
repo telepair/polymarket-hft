@@ -3,43 +3,21 @@ use tracing_subscriber::EnvFilter;
 
 mod cli;
 
-use cli::{alternativeme, clob, clob_ws, cmc, coingecko, data, gamma, rtds};
+use cli::ds;
 
 #[derive(Parser)]
 #[command(name = "polymarket")]
-#[command(about = "A CLI for Polymarket APIs", long_about = None)]
+#[command(about = "A CLI for Polymarket HFT", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
 }
 
-#[allow(clippy::large_enum_variant)] // Clap subcommands hold substantial payloads; parsed once
 #[derive(Subcommand)]
 enum Commands {
-    /// CLOB API commands
+    /// Data source commands (Polymarket and external APIs)
     #[command(subcommand)]
-    Clob(clob::ClobCommands),
-    /// CLOB WebSocket commands
-    #[command(subcommand)]
-    ClobWs(clob_ws::ClobWsCommands),
-    /// Data API commands
-    #[command(subcommand)]
-    Data(data::DataCommands),
-    /// Gamma API commands
-    #[command(subcommand)]
-    Gamma(gamma::GammaCommands),
-    /// RTDS (Real-Time Data Service) commands
-    #[command(subcommand)]
-    Rtds(rtds::RtdsCommands),
-    /// CoinMarketCap API commands (requires CMC_API_KEY)
-    #[command(subcommand)]
-    Cmc(cmc::CmcCommands),
-    /// CoinGecko API commands (requires CG_API_KEY)
-    #[command(subcommand)]
-    Cg(coingecko::CgCommands),
-    /// Alternative.me Crypto API commands (free, no API key)
-    #[command(subcommand)]
-    AlternativeMe(alternativeme::AlternativeMeCommands),
+    Ds(ds::DsCommands),
 }
 
 #[tokio::main]
@@ -53,29 +31,8 @@ async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Commands::Clob(clob_cmd) => {
-            clob::handle(clob_cmd).await?;
-        }
-        Commands::ClobWs(clob_ws_cmd) => {
-            clob_ws::handle(clob_ws_cmd).await?;
-        }
-        Commands::Data(data_cmd) => {
-            data::handle(data_cmd).await?;
-        }
-        Commands::Gamma(gamma_cmd) => {
-            gamma::handle(gamma_cmd).await?;
-        }
-        Commands::Rtds(rtds_cmd) => {
-            rtds::handle(rtds_cmd).await?;
-        }
-        Commands::Cmc(cmc_cmd) => {
-            cmc::handle(cmc_cmd).await?;
-        }
-        Commands::Cg(cg_cmd) => {
-            coingecko::handle(cg_cmd).await?;
-        }
-        Commands::AlternativeMe(alt_cmd) => {
-            alternativeme::handle(alt_cmd).await?;
+        Commands::Ds(ds_cmd) => {
+            ds::handle(ds_cmd).await?;
         }
     }
 
@@ -85,12 +42,13 @@ async fn main() -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use cli::data;
 
     #[test]
     fn parses_health_command() {
-        let cli = Cli::parse_from(["polymarket", "data", "health"]);
+        let cli = Cli::parse_from(["polymarket", "ds", "data", "health"]);
         match cli.command {
-            Commands::Data(data::DataCommands::Health) => {}
+            Commands::Ds(ds::DsCommands::Data(data::DataCommands::Health)) => {}
             _ => panic!("expected health command"),
         }
     }

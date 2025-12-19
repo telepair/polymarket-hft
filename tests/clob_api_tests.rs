@@ -292,39 +292,6 @@ fn test_interval_from_str() {
 }
 
 // =============================================================================
-// Markets Tests
-// =============================================================================
-
-#[tokio::test]
-#[ignore = "requires network access"]
-async fn test_get_markets() {
-    use polymarket_hft::client::polymarket::clob::GetMarketsRequest;
-    let client = Client::new();
-    let result = client.get_markets(GetMarketsRequest::default()).await;
-    assert!(result.is_ok(), "get_markets failed: {:?}", result.err());
-    let markets = result.unwrap();
-    println!("Received {} markets", markets.data.len());
-    println!("Next cursor: {}", markets.next_cursor);
-    if let Some(first) = markets.data.first() {
-        println!("First market condition_id: {}", first.condition_id);
-    }
-}
-
-#[tokio::test]
-#[ignore = "requires network access"]
-async fn test_get_sampling_markets() {
-    let client = Client::new();
-    let result = client.get_sampling_markets(None).await;
-    assert!(
-        result.is_ok(),
-        "get_sampling_markets failed: {:?}",
-        result.err()
-    );
-    let markets = result.unwrap();
-    println!("Received {} sampling markets", markets.data.len());
-}
-
-// =============================================================================
 // Token Info Tests
 // =============================================================================
 
