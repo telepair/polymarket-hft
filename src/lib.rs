@@ -11,7 +11,7 @@
 //! # Example
 //!
 //! ```no_run
-//! use polymarket_hft::client::data::Client;
+//! use polymarket_hft::client::polymarket::data::Client;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {

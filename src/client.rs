@@ -1,7 +1,9 @@
-//! API clients for Polymarket services.
+//! API clients for various data sources.
+//!
+//! # Structure
+//!
+//! - [`polymarket`]: Polymarket API clients (Data, CLOB, Gamma, RTDS)
+//! - [`http`]: Shared HTTP client with retry middleware
 
-pub mod clob;
-pub mod data;
-pub mod gamma;
 pub mod http;
-pub mod rtds;
+pub mod polymarket;

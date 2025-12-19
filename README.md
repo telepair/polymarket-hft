@@ -4,43 +4,73 @@
 [![Documentation](https://docs.rs/polymarket-hft/badge.svg)](https://docs.rs/polymarket-hft)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> [!CAUTION] > **⚠️ Early Development (Pre-0.1.0)**
->
-> The current `0.0.x` series is in early development:
->
-> - API wrappers **are not fully tested** and may have bugs
-> - **Breaking changes** may occur between versions
-> - **Do not use in production trading systems**
->
-> Stability guarantees will start from `0.1.0`.
+> [!CAUTION] > **Early Development (Pre-0.1.0)** - API wrappers are not fully tested. Breaking changes may occur. Do not use in production.
 
 A high-frequency trading (HFT) system for [Polymarket](https://polymarket.com) with built-in API clients and CLI.
 
-## Features
+## Architecture Overview
 
-- 🚀 **High Performance** - Built on Tokio for high-performance async operations
-- 📊 **Built-in APIs** - Data API, Gamma, CLOB, and RTDS clients available
-- 🔌 **Real-Time Streaming** - WebSocket support for RTDS real-time data feeds
-- 🔒 **Type-Safe** - Strongly typed API with comprehensive error handling
-- 🔄 **Auto Retry** - Built-in exponential backoff retry for transient failures
-- 🛠️ **CLI Tool** - Command-line interface for quick API access and testing
-- ⚡ **Low Latency** - Optimized for trading scenarios requiring fast execution
-- 📚 **Well-Documented** - Extensive documentation and examples
+The system is designed as a modular, event-driven architecture:
+
+```text
+Clients → Ingestors → Dispatcher → Policy Engine → Action Executor
+                              ↓
+                State Manager + Archiver
+```
+
+**Supported Clients & APIs** - Currently implemented clients and APIs are:
+
+| API                      | Protocol         | Status |
+| ------------------------ | ---------------- | ------ |
+| Polymarket Data API      | REST             | ✅     |
+| Polymarket Gamma Markets | REST             | ✅     |
+| Polymarket CLOB          | REST + WebSocket | ✅     |
+| Polymarket RTDS          | WebSocket        | ✅     |
+
+**Storage** - State Manager and Archiver are implemented using Redis and TimescaleDB.
+
+**Policy Engine** — Define trading rules via YAML/JSON without code:
+
+```yaml
+policies:
+  - id: btc_alert
+    conditions:
+      field: price
+      asset: "BTC"
+      operator: crosses_below
+      value: 80000
+    actions:
+      - type: notification
+        channel: telegram
+        template: "BTC below $80K!"
+```
+
+**Action Executor** - supports notifications, orders and audit logging.
+
+See [Architecture](./docs/architecture.md) and [Policy Engine](./docs/policy.md) for details.
 
 ## Documentation
 
-| Document                                   | Description                           |
-| ------------------------------------------ | ------------------------------------- |
-| [Library Guide](./docs/library.md)         | How to use the SDK as a Rust library  |
-| [CLI Guide](./docs/cli.md)                 | How to use the command-line interface |
-| [API Docs](https://docs.rs/polymarket-hft) | Full API documentation                |
+| Document                                   | Description                  |
+| ------------------------------------------ | ---------------------------- |
+| [Library Guide](./docs/library.md)         | SDK usage as a Rust library  |
+| [CLI Guide](./docs/cli.md)                 | Command-line interface usage |
+| [CLI Examples](./docs/cli_examples.md)     | Practical CLI examples       |
+| [Architecture](./docs/architecture.md)     | System design and HFT engine |
+| [Policy Engine](./docs/policy.md)          | User-defined policy DSL      |
+| [API Docs](https://docs.rs/polymarket-hft) | Full API reference           |
 
 ## Quick Start
 
 ### As a Library
 
+```toml
+[dependencies]
+polymarket-hft = "0.0.5"
+```
+
 ```rust
-use polymarket_hft::client::data::Client;
+use polymarket_hft::client::polymarket::data::Client;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -51,128 +81,41 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-👉 See [Library Guide](./docs/library.md) for more details.
-
 ### As a CLI
 
 ```bash
-# Check API health
 cargo run -- data health
-
-# Get user's traded markets count
-cargo run -- data get-user-traded-markets -u 0x56687bf447db6ffa42ffe2204a05edaa20f55839
-
-# List latest Gamma markets
 cargo run -- gamma get-markets -l 5
+cargo run -- clob get-orderbook -m "0x..."
 ```
 
-👉 See [CLI Guide](./docs/cli.md) for more details.
+See [Library Guide](./docs/library.md) and [CLI Guide](./docs/cli.md) for details.
 
-## Supported APIs
+## Roadmap
 
-| API                | Status | Description                                                                             |
-| ------------------ | ------ | --------------------------------------------------------------------------------------- |
-| **Data API**       | ✅     | Health, holders, value, traded, open interest, live volume, positions, trades, activity |
-| **Gamma Markets**  | ✅     | Sports, events, markets, tags, series, comments, search                                 |
-| **CLOB**           | ✅     | Full REST API: markets, orderbook, pricing, trading, API keys, balance, notifications   |
-| **CLOB WebSocket** | ✅     | Real-time orderbook updates, trade streams, user events                                 |
-| **RTDS**           | ✅     | Real-time data streaming (prices, trades, orderbook, comments)                          |
+- ✅ **v0.0.x** - API clients (Data, Gamma, CLOB, RTDS) and CLI
+- 🚧 **v0.1.x** - HFT Engine: Dispatcher, State Management, Strategy Engine
+- 📋 **v1.0.x** - Production-ready with validated trading strategies
 
-## Installation
-
-```toml
-[dependencies]
-polymarket-hft = "0.0.5"
-```
-
-## Architecture
-
-```text
-polymarket-hft/
-├── src/
-│   ├── client/
-│   │   ├── data/       # Data API client
-│   │   ├── clob/       # CLOB REST API client
-│   │   │   └── ws/     # CLOB WebSocket client
-│   │   ├── gamma/      # Gamma Markets API client
-│   │   ├── rtds/       # RTDS WebSocket client
-│   │   └── http.rs     # Shared HTTP client with retry middleware
-│   ├── cli/            # CLI command implementations
-│   └── main.rs         # CLI entry point
-```
-
-## Development Status
-
-🚧 **This project is in active development.**
-
-### Versioning Policy
-
-| Version   | Stability            | Description                                                                                                                                  |
-| --------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **0.0.x** | ⚠️ Early Development | Breaking changes expected. APIs are experimental and not fully validated. Use for exploration only.                                          |
-| **0.1.x** | 🔄 Beta              | Client APIs stabilized with no breaking changes within minor versions. Trading strategies remain experimental and may have breaking changes. |
-| **1.0.x** | ✅ Stable            | Full API stability. Trading strategies validated and stable.                                                                                 |
-
-### Current Status
-
-- ✅ Project structure and module organization
-- ✅ Data API client with 10 endpoints:
-  - `health` - API health check
-  - `get_market_top_holders` - Get top holders for markets
-  - `get_user_portfolio_value` - Get total value of user's positions
-  - `get_user_traded_markets` - Get user's traded markets count
-  - `get_open_interest` - Get open interest for markets
-  - `get_event_live_volume` - Get live volume for an event
-  - `get_user_positions` - Get current positions for a user
-  - `get_user_closed_positions` - Get closed positions for a user
-  - `get_user_activity` - Get on-chain activity for a user
-  - `get_trades` - Get trades for a user or markets
-- ✅ CLI tool for Data API
-- ✅ CI/CD pipeline (GitHub Actions)
-
-### Roadmap
-
-1. ~~Implement Data API endpoints~~ ✅
-2. ~~Implement CLOB REST API endpoints~~ ✅
-3. ~~Implement CLOB WebSocket connectivity~~ ✅
-4. ~~Implement Gamma Markets API endpoints~~ ✅
-5. ~~Implement RTDS streaming~~ ✅
-6. Add HFT trading strategies framework
-7. Add comprehensive integration tests
-8. Publish to crates.io
+See [Architecture](./docs/architecture.md) for detailed HFT engine design.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
 ```bash
-# Clone the repository
 git clone https://github.com/telepair/polymarket-hft.git
 cd polymarket-hft
-
-# Build the project
-cargo build
-
-# Run tests
-cargo test
-
-# Run the CLI
+cargo build && cargo test
 cargo run -- --help
 ```
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE)
-file for details.
+MIT License - see [LICENSE](LICENSE).
 
 ## Disclaimer
 
-This is an unofficial SDK and is not affiliated with Polymarket.
-Use at your own risk. This software is intended for educational and research purposes.
+Unofficial SDK, not affiliated with Polymarket. Use at your own risk for educational and research purposes.
 
 ## Links
 
-- [Polymarket](https://polymarket.com)
-- [Polymarket API Docs](https://docs.polymarket.com)
-- [GitHub](https://github.com/telepair/polymarket-hft)
-- [Issues](https://github.com/telepair/polymarket-hft/issues)
+- [Polymarket](https://polymarket.com) | [API Docs](https://docs.polymarket.com) | [GitHub](https://github.com/telepair/polymarket-hft) | [Issues](https://github.com/telepair/polymarket-hft/issues)

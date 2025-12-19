@@ -38,7 +38,7 @@ impl Client {
     /// # Example
     ///
     /// ```no_run
-    /// use polymarket_hft::client::clob::{Client, SpreadRequest};
+    /// use polymarket_hft::client::polymarket::clob::{Client, SpreadRequest};
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {

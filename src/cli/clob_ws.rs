@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use crate::cli::common::write_json_output;
 use clap::{Args, Subcommand};
-use polymarket_hft::client::clob::ws::{ClobWsClient, WsAuth, WsMessage};
+use polymarket_hft::client::polymarket::clob::ws::{ClobWsClient, WsAuth, WsMessage};
 
 #[derive(Subcommand)]
 pub enum ClobWsCommands {

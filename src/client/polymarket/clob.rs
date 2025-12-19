@@ -6,7 +6,7 @@
 //! # Example
 //!
 //! ```no_run
-//! use polymarket_hft::client::clob::{Client, Side};
+//! use polymarket_hft::client::polymarket::clob::{Client, Side};
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {

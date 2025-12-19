@@ -3,7 +3,7 @@
 //! These tests require network access and connect to the live Polymarket WebSocket.
 //! They are marked `#[ignore]` and must be run explicitly with `--ignored`.
 
-use polymarket_hft::client::clob::ws::{ClobWsClient, WsAuth, WsMessage};
+use polymarket_hft::client::polymarket::clob::ws::{ClobWsClient, WsAuth, WsMessage};
 use std::time::Duration;
 
 /// Test connecting to the market channel and receiving messages.

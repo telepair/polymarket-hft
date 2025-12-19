@@ -193,7 +193,7 @@ pub struct Activity {
 /// # Example
 ///
 /// ```no_run
-/// use polymarket_hft::client::data::{Client, GetUserActivityRequest, ActivityType, ActivitySortBy, SortDirection};
+/// use polymarket_hft::client::polymarket::data::{Client, GetUserActivityRequest, ActivityType, ActivitySortBy, SortDirection};
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -387,7 +387,7 @@ impl Client {
     /// # Example
     ///
     /// ```no_run
-    /// use polymarket_hft::client::data::{Client, GetUserActivityRequest, ActivityType, ActivitySortBy, SortDirection};
+    /// use polymarket_hft::client::polymarket::data::{Client, GetUserActivityRequest, ActivityType, ActivitySortBy, SortDirection};
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {

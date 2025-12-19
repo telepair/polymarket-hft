@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use crate::cli::common::write_json_output;
 use clap::{Args, Subcommand};
-use polymarket_hft::client::rtds::{ClobAuth, RtdsClient, Subscription};
+use polymarket_hft::client::polymarket::rtds::{ClobAuth, RtdsClient, Subscription};
 
 #[derive(Subcommand)]
 pub enum RtdsCommands {

@@ -8,8 +8,10 @@ use std::str::FromStr;
 use super::builder::ExchangeOrderBuilder;
 use super::constants::COLLATERAL_TOKEN_DECIMALS;
 use super::types::{OrderData, Side, SignedOrder};
-use crate::client::clob::orderbook::PriceLevel;
-use crate::client::clob::types::{OrderType, TickSize, UserLimitOrder, UserMarketOrder};
+use crate::client::polymarket::clob::orderbook::PriceLevel;
+use crate::client::polymarket::clob::types::{
+    OrderType, TickSize, UserLimitOrder, UserMarketOrder,
+};
 use crate::error::{PolymarketError, Result};
 
 // =============================================================================
@@ -316,8 +318,8 @@ pub fn build_limit_order_data(
 
     // Convert Side from pricing::Side to order_utils::Side
     let side = match user_order.side {
-        crate::client::clob::pricing::Side::Buy => Side::Buy,
-        crate::client::clob::pricing::Side::Sell => Side::Sell,
+        crate::client::polymarket::clob::pricing::Side::Buy => Side::Buy,
+        crate::client::polymarket::clob::pricing::Side::Sell => Side::Sell,
     };
 
     let raw_amounts = get_order_raw_amounts(side, user_order.size, user_order.price, &round_config);
@@ -359,8 +361,8 @@ pub fn build_market_order_data(
 
     // Convert Side from pricing::Side to order_utils::Side
     let side = match user_order.side {
-        crate::client::clob::pricing::Side::Buy => Side::Buy,
-        crate::client::clob::pricing::Side::Sell => Side::Sell,
+        crate::client::polymarket::clob::pricing::Side::Buy => Side::Buy,
+        crate::client::polymarket::clob::pricing::Side::Sell => Side::Sell,
     };
 
     let raw_amounts = get_market_order_raw_amounts(side, user_order.amount, price, &round_config);

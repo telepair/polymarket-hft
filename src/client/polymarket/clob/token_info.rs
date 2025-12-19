@@ -37,7 +37,7 @@ impl Client {
     /// # Example
     ///
     /// ```no_run
-    /// use polymarket_hft::client::clob::Client;
+    /// use polymarket_hft::client::polymarket::clob::Client;
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -87,7 +87,7 @@ impl Client {
     /// # Example
     ///
     /// ```no_run
-    /// use polymarket_hft::client::clob::Client;
+    /// use polymarket_hft::client::polymarket::clob::Client;
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -124,7 +124,7 @@ impl Client {
     /// # Example
     ///
     /// ```no_run
-    /// use polymarket_hft::client::clob::Client;
+    /// use polymarket_hft::client::polymarket::clob::Client;
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {

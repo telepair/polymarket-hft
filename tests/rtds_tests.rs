@@ -3,7 +3,7 @@
 //! These tests require network access and connect to the live Polymarket WebSocket.
 //! They are marked `#[ignore]` and must be run explicitly with `--ignored`.
 
-use polymarket_hft::client::rtds::{RtdsClient, Subscription};
+use polymarket_hft::client::polymarket::rtds::{RtdsClient, Subscription};
 use std::time::Duration;
 
 /// Test connecting to the RTDS server and receiving a message.

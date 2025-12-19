@@ -6,7 +6,7 @@
 //! # Example
 //!
 //! ```no_run
-//! use polymarket_hft::client::rtds::{RtdsClient, Subscription};
+//! use polymarket_hft::client::polymarket::rtds::{RtdsClient, Subscription};
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {

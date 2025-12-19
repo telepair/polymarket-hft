@@ -5,7 +5,7 @@
 //! # Example
 //!
 //! ```no_run
-//! use polymarket_hft::client::gamma::{Client, GetMarketsRequest};
+//! use polymarket_hft::client::polymarket::gamma::{Client, GetMarketsRequest};
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {

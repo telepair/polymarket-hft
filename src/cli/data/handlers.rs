@@ -1,6 +1,6 @@
 //! Data API CLI command handlers.
 
-use polymarket_hft::client::data::Client;
+use polymarket_hft::client::polymarket::data::Client;
 
 use super::commands::{
     DataCommands, GetTradesArgs, GetUserActivityArgs, GetUserClosedPositionsArgs,
@@ -81,31 +81,33 @@ async fn handle_get_user_positions(
     let parsed_sort_by = params
         .sort_by
         .as_ref()
-        .map(|s| s.parse::<polymarket_hft::client::data::PositionSortBy>())
+        .map(|s| s.parse::<polymarket_hft::client::polymarket::data::PositionSortBy>())
         .transpose()
         .map_err(|e| anyhow::anyhow!("invalid --sort-by: {}", e))?;
 
     let parsed_sort_direction = params
         .sort_direction
         .as_ref()
-        .map(|s| s.parse::<polymarket_hft::client::data::SortDirection>())
+        .map(|s| s.parse::<polymarket_hft::client::polymarket::data::SortDirection>())
         .transpose()
         .map_err(|e| anyhow::anyhow!("invalid --sort-direction: {}", e))?;
 
     let positions = client
-        .get_user_positions(polymarket_hft::client::data::GetUserPositionsRequest {
-            user: params.user.as_str(),
-            markets: market_refs.as_deref(),
-            event_ids: params.event_id.as_deref(),
-            size_threshold: params.size_threshold,
-            redeemable: params.redeemable,
-            mergeable: params.mergeable,
-            limit: params.limit,
-            offset: params.offset,
-            sort_by: parsed_sort_by,
-            sort_direction: parsed_sort_direction,
-            title: params.title.as_deref(),
-        })
+        .get_user_positions(
+            polymarket_hft::client::polymarket::data::GetUserPositionsRequest {
+                user: params.user.as_str(),
+                markets: market_refs.as_deref(),
+                event_ids: params.event_id.as_deref(),
+                size_threshold: params.size_threshold,
+                redeemable: params.redeemable,
+                mergeable: params.mergeable,
+                limit: params.limit,
+                offset: params.offset,
+                sort_by: parsed_sort_by,
+                sort_direction: parsed_sort_direction,
+                title: params.title.as_deref(),
+            },
+        )
         .await?;
     write_json_output(&positions)?;
     Ok(())
@@ -123,20 +125,20 @@ async fn handle_get_user_closed_positions(
     let parsed_sort_by = params
         .sort_by
         .as_ref()
-        .map(|s| s.parse::<polymarket_hft::client::data::ClosedPositionSortBy>())
+        .map(|s| s.parse::<polymarket_hft::client::polymarket::data::ClosedPositionSortBy>())
         .transpose()
         .map_err(|e| anyhow::anyhow!("invalid --sort-by: {}", e))?;
 
     let parsed_sort_direction = params
         .sort_direction
         .as_ref()
-        .map(|s| s.parse::<polymarket_hft::client::data::SortDirection>())
+        .map(|s| s.parse::<polymarket_hft::client::polymarket::data::SortDirection>())
         .transpose()
         .map_err(|e| anyhow::anyhow!("invalid --sort-direction: {}", e))?;
 
     let positions = client
         .get_user_closed_positions(
-            polymarket_hft::client::data::GetUserClosedPositionsRequest {
+            polymarket_hft::client::polymarket::data::GetUserClosedPositionsRequest {
                 user: params.user.as_str(),
                 markets: market_refs.as_deref(),
                 title: params.title.as_deref(),
@@ -161,53 +163,56 @@ async fn handle_get_user_activity(
         .as_ref()
         .map(|m| m.iter().map(|s| s.as_str()).collect());
 
-    let parsed_activity_types: Option<Vec<polymarket_hft::client::data::ActivityType>> = params
-        .activity_type
-        .as_ref()
-        .map(|types| {
-            types
-                .iter()
-                .map(|s| s.parse::<polymarket_hft::client::data::ActivityType>())
-                .collect::<std::result::Result<Vec<_>, _>>()
-        })
-        .transpose()
-        .map_err(|e| anyhow::anyhow!("invalid --type: {}", e))?;
+    let parsed_activity_types: Option<Vec<polymarket_hft::client::polymarket::data::ActivityType>> =
+        params
+            .activity_type
+            .as_ref()
+            .map(|types| {
+                types
+                    .iter()
+                    .map(|s| s.parse::<polymarket_hft::client::polymarket::data::ActivityType>())
+                    .collect::<std::result::Result<Vec<_>, _>>()
+            })
+            .transpose()
+            .map_err(|e| anyhow::anyhow!("invalid --type: {}", e))?;
 
     let parsed_sort_by = params
         .sort_by
         .as_ref()
-        .map(|s| s.parse::<polymarket_hft::client::data::ActivitySortBy>())
+        .map(|s| s.parse::<polymarket_hft::client::polymarket::data::ActivitySortBy>())
         .transpose()
         .map_err(|e| anyhow::anyhow!("invalid --sort-by: {}", e))?;
 
     let parsed_sort_direction = params
         .sort_direction
         .as_ref()
-        .map(|s| s.parse::<polymarket_hft::client::data::SortDirection>())
+        .map(|s| s.parse::<polymarket_hft::client::polymarket::data::SortDirection>())
         .transpose()
         .map_err(|e| anyhow::anyhow!("invalid --sort-direction: {}", e))?;
 
     let parsed_side = params
         .side
         .as_ref()
-        .map(|s| s.parse::<polymarket_hft::client::data::TradeSide>())
+        .map(|s| s.parse::<polymarket_hft::client::polymarket::data::TradeSide>())
         .transpose()
         .map_err(|e| anyhow::anyhow!("invalid --side: {}", e))?;
 
     let activity = client
-        .get_user_activity(polymarket_hft::client::data::GetUserActivityRequest {
-            user: params.user.as_str(),
-            limit: params.limit,
-            offset: params.offset,
-            markets: market_refs.as_deref(),
-            event_ids: params.event_id.as_deref(),
-            activity_types: parsed_activity_types.as_deref(),
-            start: params.start,
-            end: params.end,
-            sort_by: parsed_sort_by,
-            sort_direction: parsed_sort_direction,
-            side: parsed_side,
-        })
+        .get_user_activity(
+            polymarket_hft::client::polymarket::data::GetUserActivityRequest {
+                user: params.user.as_str(),
+                limit: params.limit,
+                offset: params.offset,
+                markets: market_refs.as_deref(),
+                event_ids: params.event_id.as_deref(),
+                activity_types: parsed_activity_types.as_deref(),
+                start: params.start,
+                end: params.end,
+                sort_by: parsed_sort_by,
+                sort_direction: parsed_sort_direction,
+                side: parsed_side,
+            },
+        )
         .await?;
     write_json_output(&activity)?;
     Ok(())
@@ -222,19 +227,19 @@ async fn handle_get_trades(client: &Client, params: &GetTradesArgs) -> anyhow::R
     let parsed_filter_type = params
         .filter_type
         .as_ref()
-        .map(|s| s.parse::<polymarket_hft::client::data::TradeFilterType>())
+        .map(|s| s.parse::<polymarket_hft::client::polymarket::data::TradeFilterType>())
         .transpose()
         .map_err(|e| anyhow::anyhow!("invalid --filter-type: {}", e))?;
 
     let parsed_side = params
         .side
         .as_ref()
-        .map(|s| s.parse::<polymarket_hft::client::data::TradeSide>())
+        .map(|s| s.parse::<polymarket_hft::client::polymarket::data::TradeSide>())
         .transpose()
         .map_err(|e| anyhow::anyhow!("invalid --side: {}", e))?;
 
     let trades = client
-        .get_trades(polymarket_hft::client::data::GetTradesRequest {
+        .get_trades(polymarket_hft::client::polymarket::data::GetTradesRequest {
             limit: params.limit,
             offset: params.offset,
             taker_only: params.taker_only,

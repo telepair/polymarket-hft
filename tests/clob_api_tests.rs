@@ -3,11 +3,11 @@
 //! Tests marked with `#[ignore]` require network access to the live Polymarket API.
 //! Run them with: `cargo test --test clob_api_tests -- --ignored --nocapture`
 
-use polymarket_hft::client::clob::{
+use polymarket_hft::client::polymarket::clob::{
     Client, DEFAULT_BASE_URL, GetOrderBooksRequestItem, GetPriceHistoryRequest, MarketPriceRequest,
     PriceHistoryInterval, Side, SpreadRequest,
 };
-use polymarket_hft::client::gamma::{Client as GammaClient, GetMarketsRequest};
+use polymarket_hft::client::polymarket::gamma::{Client as GammaClient, GetMarketsRequest};
 
 // =============================================================================
 // Test Helpers
@@ -298,7 +298,7 @@ fn test_interval_from_str() {
 #[tokio::test]
 #[ignore = "requires network access"]
 async fn test_get_markets() {
-    use polymarket_hft::client::clob::GetMarketsRequest;
+    use polymarket_hft::client::polymarket::clob::GetMarketsRequest;
     let client = Client::new();
     let result = client.get_markets(GetMarketsRequest::default()).await;
     assert!(result.is_ok(), "get_markets failed: {:?}", result.err());

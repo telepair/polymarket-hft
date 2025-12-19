@@ -1,6 +1,6 @@
 use crate::cli::common::write_json_output;
 use clap::{Args, Subcommand};
-use polymarket_hft::client::gamma::{
+use polymarket_hft::client::polymarket::gamma::{
     Client, GetCommentsByUserAddressRequest, GetCommentsRequest, GetEventsRequest,
     GetMarketsRequest, GetSeriesRequest, GetTagsRequest, GetTeamsRequest, SearchRequest,
     TagRelationshipStatus,

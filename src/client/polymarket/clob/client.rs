@@ -1,22 +1,20 @@
-//! Data API client implementation.
+//! CLOB API client implementation.
 
 use reqwest::{Client as HttpClient, Response};
 use reqwest_middleware::ClientWithMiddleware;
-use tracing::{instrument, trace};
+use tracing::trace;
 use url::Url;
 
 use crate::client::http::{DEFAULT_MAX_RETRIES, HttpClientConfig, wrap_with_retry};
 use crate::error::{PolymarketError, Result};
 
-use super::HealthStatus;
-
-/// Default base URL for the Polymarket Data API.
-pub const DEFAULT_BASE_URL: &str = "https://data-api.polymarket.com";
+/// Default base URL for the Polymarket CLOB API.
+pub const DEFAULT_BASE_URL: &str = "https://clob.polymarket.com";
 
 /// Maximum error message length to prevent sensitive data leakage.
 const MAX_ERROR_MESSAGE_LEN: usize = 500;
 
-/// Client for interacting with the Polymarket Data API.
+/// Client for interacting with the Polymarket CLOB API.
 #[derive(Debug, Clone)]
 pub struct Client {
     /// HTTP client with retry middleware.
@@ -26,21 +24,20 @@ pub struct Client {
 }
 
 impl Client {
-    /// Creates a new Data API client with the default base URL.
+    /// Creates a new CLOB API client with the default base URL.
     ///
     /// # Example
     ///
     /// ```no_run
-    /// use polymarket_hft::client::data::Client;
+    /// use polymarket_hft::client::polymarket::clob::Client;
     ///
     /// let client = Client::new();
     /// ```
     pub fn new() -> Self {
-        // DEFAULT_BASE_URL is known to be valid, unwrap is safe
-        Self::with_base_url(DEFAULT_BASE_URL).expect("default base URL is valid")
+        Self::with_base_url(DEFAULT_BASE_URL).expect("default CLOB base URL is valid")
     }
 
-    /// Creates a new Data API client with a custom base URL.
+    /// Creates a new CLOB API client with a custom base URL.
     ///
     /// # Arguments
     ///
@@ -53,9 +50,9 @@ impl Client {
     /// # Example
     ///
     /// ```no_run
-    /// use polymarket_hft::client::data::Client;
+    /// use polymarket_hft::client::polymarket::clob::Client;
     ///
-    /// let client = Client::with_base_url("https://custom-api.example.com").unwrap();
+    /// let client = Client::with_base_url("https://custom-clob.example.com").unwrap();
     /// ```
     pub fn with_base_url(base_url: &str) -> Result<Self> {
         let url = Url::parse(base_url)?;
@@ -68,7 +65,7 @@ impl Client {
         })
     }
 
-    /// Creates a new Data API client with a custom base URL and retry configuration.
+    /// Creates a new CLOB API client with a custom base URL and retry configuration.
     ///
     /// # Arguments
     ///
@@ -90,7 +87,7 @@ impl Client {
         })
     }
 
-    /// Creates a new Data API client with an existing HTTP client.
+    /// Creates a new CLOB API client with an existing HTTP client.
     ///
     /// The provided client will be wrapped with retry middleware using default settings.
     ///
@@ -101,7 +98,7 @@ impl Client {
     /// # Example
     ///
     /// ```no_run
-    /// use polymarket_hft::client::data::Client;
+    /// use polymarket_hft::client::polymarket::clob::Client;
     /// use reqwest::Client as HttpClient;
     ///
     /// let http_client = HttpClient::builder()
@@ -114,11 +111,11 @@ impl Client {
     pub fn with_http_client(http_client: HttpClient) -> Self {
         Self {
             http_client: wrap_with_retry(http_client, DEFAULT_MAX_RETRIES),
-            base_url: Url::parse(DEFAULT_BASE_URL).expect("default base URL is valid"),
+            base_url: Url::parse(DEFAULT_BASE_URL).expect("default CLOB base URL is valid"),
         }
     }
 
-    /// Creates a new Data API client with an existing middleware-enabled HTTP client.
+    /// Creates a new CLOB API client with an existing middleware-enabled HTTP client.
     ///
     /// # Arguments
     ///
@@ -126,14 +123,11 @@ impl Client {
     pub fn with_middleware_client(http_client: ClientWithMiddleware) -> Self {
         Self {
             http_client,
-            base_url: Url::parse(DEFAULT_BASE_URL).expect("default base URL is valid"),
+            base_url: Url::parse(DEFAULT_BASE_URL).expect("default CLOB base URL is valid"),
         }
     }
 
     /// Checks if the response is successful and returns an appropriate error if not.
-    ///
-    /// This helper method centralizes error handling and sanitizes error messages
-    /// to prevent sensitive information leakage.
     pub(super) async fn check_response(&self, response: Response) -> Result<Response> {
         let status = response.status();
         trace!(status = %status, "received HTTP response");
@@ -151,7 +145,6 @@ impl Client {
             .take(MAX_ERROR_MESSAGE_LEN)
             .collect::<String>();
 
-        // Sanitize error message based on status code
         let error_msg = match status_code {
             400..=499 => format!("client error ({}): {}", status_code, message),
             500..=599 => {
@@ -169,9 +162,6 @@ impl Client {
     }
 
     /// Builds a URL for the given path, preserving any base path prefix.
-    ///
-    /// This avoids dropping path components when users provide a base URL like
-    /// `https://example.com/api/v1`, where we still need `/api/v1/<path>`.
     pub(super) fn build_url(&self, path: &str) -> Url {
         let mut url = self.base_url.clone();
 
@@ -188,37 +178,73 @@ impl Client {
         url
     }
 
-    /// Performs a health check on the Data API.
-    ///
-    /// This endpoint is used to verify that the API is operational.
+    // =========================================================================
+    // Server Endpoints
+    // =========================================================================
+
+    /// Health check - verifies the server is operational.
     ///
     /// # Returns
     ///
-    /// Returns a `HealthStatus` containing the health status.
-    /// A successful response will have `data` set to "OK".
+    /// Returns `Ok(())` if the server is healthy.
     ///
     /// # Example
     ///
     /// ```no_run
-    /// use polymarket_hft::client::data::Client;
+    /// use polymarket_hft::client::polymarket::clob::Client;
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ///     let client = Client::new();
-    ///     let health = client.health().await?;
-    ///     println!("API status: {}", health.data);
+    ///     client.get_ok().await?;
+    ///     println!("Server is healthy!");
     ///     Ok(())
     /// }
     /// ```
-    #[instrument(skip(self), level = "trace")]
-    pub async fn health(&self) -> Result<HealthStatus> {
-        let url = self.base_url.as_str();
-        trace!(url = %url, method = "GET", "sending HTTP request");
+    pub async fn get_ok(&self) -> Result<()> {
+        let url = self.build_url("");
+        trace!(url = %url, method = "GET", "sending health check request");
+        let response = self.http_client.get(url).send().await?;
+        self.check_response(response).await?;
+        trace!("server health check passed");
+        Ok(())
+    }
+
+    /// Gets the current server time in Unix milliseconds.
+    ///
+    /// This is useful for synchronizing timestamps for order signatures.
+    ///
+    /// # Returns
+    ///
+    /// Returns the server time as Unix milliseconds.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use polymarket_hft::client::polymarket::clob::Client;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     let client = Client::new();
+    ///     let time = client.get_server_time().await?;
+    ///     println!("Server time: {} ms", time);
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn get_server_time(&self) -> Result<u64> {
+        let url = self.build_url("time");
+        trace!(url = %url, method = "GET", "sending server time request");
         let response = self.http_client.get(url).send().await?;
         let response = self.check_response(response).await?;
-        let health_response: HealthStatus = response.json().await?;
-        trace!(data = %health_response.data, "health check completed");
-        Ok(health_response)
+
+        #[derive(serde::Deserialize)]
+        struct TimeResponse {
+            time: u64,
+        }
+
+        let result: TimeResponse = response.json().await?;
+        trace!(time = result.time, "received server time");
+        Ok(result.time)
     }
 }
 
@@ -248,8 +274,15 @@ mod tests {
     )]
     #[test]
     fn test_client_with_custom_url() {
-        let client = Client::with_base_url("https://custom-api.example.com/").unwrap();
-        assert_eq!(client.base_url.as_str(), "https://custom-api.example.com/");
+        let client = Client::with_base_url("https://example.com/").unwrap();
+        assert_eq!(client.base_url.as_str(), "https://example.com/");
+    }
+
+    #[test]
+    fn test_build_url_preserves_base_path_prefix() {
+        let client = Client::with_base_url("https://example.com/api/v1").unwrap();
+        let url = client.build_url("book");
+        assert_eq!(url.as_str(), "https://example.com/api/v1/book");
     }
 
     #[cfg_attr(
@@ -260,13 +293,6 @@ mod tests {
     fn test_client_with_invalid_url() {
         let result = Client::with_base_url("not-a-valid-url");
         assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_build_url_preserves_base_path_prefix() {
-        let client = Client::with_base_url("https://example.com/api/v1").unwrap();
-        let url = client.build_url("trades");
-        assert_eq!(url.as_str(), "https://example.com/api/v1/trades");
     }
 
     #[cfg_attr(

@@ -13,15 +13,14 @@ BINARY_NAME  := polymarket
 # =============================================================================
 # PHONY Targets
 # =============================================================================
-.PHONY: all fmt lint lint-rust lint-md check test test-unit test-integration \
-        test-data test-gamma test-clob doc doc-open build release install run clean help
+.PHONY: all fmt lint lint-rust lint-md check test test-integration test-all doc doc-open build release install run clean update help
 
 # =============================================================================
 # Development Workflow
 # =============================================================================
 
 ## Primary Targets
-all: fmt lint check test build          ## Run full CI pipeline (fmt, lint, check, test, build)
+all: fmt lint check test-all doc build          ## Run full CI pipeline (fmt, lint, check, test, build)
 
 ## Code Quality
 fmt:                                     ## Format code with rustfmt
@@ -46,25 +45,17 @@ check:                                   ## Type-check without building
 # Testing
 # =============================================================================
 
-test: test-unit                          ## Run all unit tests
-
-test-unit:                               ## Run unit tests only
+test:                                 ## Run unit tests
 	@echo "Running unit tests..."
+	@$(CARGO) test $(CARGO_FLAGS) --lib --bins
+
+test-integration:                     ## Run integration tests
+	@echo "Running integration tests..."
+	@$(CARGO) test $(CARGO_FLAGS) --test '*'
+
+test-all:                             ## Run all tests (unit + integration + doc)
+	@echo "Running all tests..."
 	@$(CARGO) test $(CARGO_FLAGS) --all-targets --all-features
-
-test-integration: test-data test-gamma test-clob  ## Run all integration tests (requires network)
-
-test-data:                               ## Run Data API integration tests
-	@echo "Running Data API integration tests..."
-	@$(CARGO) test --test data_api_tests -- --ignored --nocapture
-
-test-gamma:                              ## Run Gamma API integration tests
-	@echo "Running Gamma API integration tests..."
-	@$(CARGO) test --test gamma_api_tests -- --ignored --nocapture
-
-test-clob:                               ## Run CLOB API integration tests
-	@echo "Running CLOB API integration tests..."
-	@$(CARGO) test --test clob_api_tests -- --ignored --nocapture
 
 # =============================================================================
 # Documentation

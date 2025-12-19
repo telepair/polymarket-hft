@@ -43,106 +43,106 @@ polymarket data health
 
 Get current positions for a user.
 
-| Option | Description |
-|--------|-------------|
-| `-u, --user <ADDRESS>` | User address (required) |
-| `-m, --market <ID>` | Market condition IDs (multiple) |
-| `-e, --event-id <ID>` | Event IDs (multiple) |
-| `--size-threshold <SIZE>` | Minimum position size |
-| `--redeemable <BOOL>` | Filter redeemable positions |
-| `--mergeable <BOOL>` | Filter mergeable positions |
-| `-l, --limit <N>` | Limit results (0-500, default: 100) |
-| `-o, --offset <N>` | Pagination offset (0-10000) |
-| `--sort-by <FIELD>` | CURRENT, INITIAL, TOKENS, CASHPNL, PERCENTPNL, TITLE, RESOLVING, PRICE, AVGPRICE |
-| `--sort-direction <DIR>` | ASC or DESC |
-| `-t, --title <TITLE>` | Title filter (max 160 chars) |
+| Option                    | Description                                                                      |
+| ------------------------- | -------------------------------------------------------------------------------- |
+| `-u, --user <ADDRESS>`    | User address (required)                                                          |
+| `-m, --market <ID>`       | Market condition IDs (multiple)                                                  |
+| `-e, --event-id <ID>`     | Event IDs (multiple)                                                             |
+| `--size-threshold <SIZE>` | Minimum position size                                                            |
+| `--redeemable <BOOL>`     | Filter redeemable positions                                                      |
+| `--mergeable <BOOL>`      | Filter mergeable positions                                                       |
+| `-l, --limit <N>`         | Limit results (0-500, default: 100)                                              |
+| `-o, --offset <N>`        | Pagination offset (0-10000)                                                      |
+| `--sort-by <FIELD>`       | CURRENT, INITIAL, TOKENS, CASHPNL, PERCENTPNL, TITLE, RESOLVING, PRICE, AVGPRICE |
+| `--sort-direction <DIR>`  | ASC or DESC                                                                      |
+| `-t, --title <TITLE>`     | Title filter (max 160 chars)                                                     |
 
 #### get-user-closed-positions
 
 Get closed positions for a user.
 
-| Option | Description |
-|--------|-------------|
-| `-u, --user <ADDRESS>` | User address (required) |
-| `-m, --market <ID>` | Market condition IDs (multiple) |
-| `-t, --title <TITLE>` | Title filter (max 100 chars) |
-| `-e, --event-id <ID>` | Event IDs (multiple) |
-| `-l, --limit <N>` | Limit results (0-50, default: 10) |
-| `-o, --offset <N>` | Pagination offset (0-100000) |
-| `--sort-by <FIELD>` | REALIZEDPNL, TITLE, PRICE, AVGPRICE, TIMESTAMP |
-| `--sort-direction <DIR>` | ASC or DESC |
+| Option                   | Description                                    |
+| ------------------------ | ---------------------------------------------- |
+| `-u, --user <ADDRESS>`   | User address (required)                        |
+| `-m, --market <ID>`      | Market condition IDs (multiple)                |
+| `-t, --title <TITLE>`    | Title filter (max 100 chars)                   |
+| `-e, --event-id <ID>`    | Event IDs (multiple)                           |
+| `-l, --limit <N>`        | Limit results (0-50, default: 10)              |
+| `-o, --offset <N>`       | Pagination offset (0-100000)                   |
+| `--sort-by <FIELD>`      | REALIZEDPNL, TITLE, PRICE, AVGPRICE, TIMESTAMP |
+| `--sort-direction <DIR>` | ASC or DESC                                    |
 
 #### get-user-portfolio-value
 
 Get total value of user's positions.
 
-| Option | Description |
-|--------|-------------|
-| `-u, --user <ADDRESS>` | User address (required) |
-| `-m, --market <ID>` | Market IDs (multiple, optional) |
+| Option                 | Description                     |
+| ---------------------- | ------------------------------- |
+| `-u, --user <ADDRESS>` | User address (required)         |
+| `-m, --market <ID>`    | Market IDs (multiple, optional) |
 
 #### get-user-traded-markets
 
 Get count of markets user has traded.
 
-| Option | Description |
-|--------|-------------|
+| Option                 | Description             |
+| ---------------------- | ----------------------- |
 | `-u, --user <ADDRESS>` | User address (required) |
 
 #### get-user-activity
 
 Get on-chain activity for a user.
 
-| Option | Description |
-|--------|-------------|
-| `-u, --user <ADDRESS>` | User address (required) |
-| `-l, --limit <N>` | Limit results (0-500, default: 100) |
-| `-o, --offset <N>` | Pagination offset (0-10000) |
-| `-m, --market <ID>` | Market condition IDs (mutually exclusive with event-id) |
-| `-e, --event-id <ID>` | Event IDs (mutually exclusive with market) |
-| `-t, --type <TYPE>` | TRADE, SPLIT, MERGE, REDEEM, REWARD, CONVERSION |
-| `--start <TS>` | Start timestamp |
-| `--end <TS>` | End timestamp |
-| `--sort-by <FIELD>` | TIMESTAMP, TOKENS, CASH |
-| `--sort-direction <DIR>` | ASC or DESC |
-| `--side <SIDE>` | BUY or SELL |
+| Option                   | Description                                             |
+| ------------------------ | ------------------------------------------------------- |
+| `-u, --user <ADDRESS>`   | User address (required)                                 |
+| `-l, --limit <N>`        | Limit results (0-500, default: 100)                     |
+| `-o, --offset <N>`       | Pagination offset (0-10000)                             |
+| `-m, --market <ID>`      | Market condition IDs (mutually exclusive with event-id) |
+| `-e, --event-id <ID>`    | Event IDs (mutually exclusive with market)              |
+| `-t, --type <TYPE>`      | TRADE, SPLIT, MERGE, REDEEM, REWARD, CONVERSION         |
+| `--start <TS>`           | Start timestamp                                         |
+| `--end <TS>`             | End timestamp                                           |
+| `--sort-by <FIELD>`      | TIMESTAMP, TOKENS, CASH                                 |
+| `--sort-direction <DIR>` | ASC or DESC                                             |
+| `--side <SIDE>`          | BUY or SELL                                             |
 
 #### get-trades
 
 Get trades for user or markets.
 
-| Option | Description |
-|--------|-------------|
-| `-u, --user <ADDRESS>` | User address (optional) |
-| `-m, --market <ID>` | Market condition IDs (mutually exclusive with event-id) |
-| `-e, --event-id <ID>` | Event IDs (mutually exclusive with market) |
-| `-l, --limit <N>` | Limit results (0-10000, default: 100) |
-| `-o, --offset <N>` | Pagination offset (0-10000) |
-| `--taker-only <BOOL>` | Filter taker-only trades (default: true) |
-| `--filter-type <TYPE>` | CASH or TOKENS (requires filter-amount) |
-| `--filter-amount <N>` | Filter amount (requires filter-type) |
-| `-s, --side <SIDE>` | BUY or SELL |
+| Option                 | Description                                             |
+| ---------------------- | ------------------------------------------------------- |
+| `-u, --user <ADDRESS>` | User address (optional)                                 |
+| `-m, --market <ID>`    | Market condition IDs (mutually exclusive with event-id) |
+| `-e, --event-id <ID>`  | Event IDs (mutually exclusive with market)              |
+| `-l, --limit <N>`      | Limit results (0-10000, default: 100)                   |
+| `-o, --offset <N>`     | Pagination offset (0-10000)                             |
+| `--taker-only <BOOL>`  | Filter taker-only trades (default: true)                |
+| `--filter-type <TYPE>` | CASH or TOKENS (requires filter-amount)                 |
+| `--filter-amount <N>`  | Filter amount (requires filter-type)                    |
+| `-s, --side <SIDE>`    | BUY or SELL                                             |
 
 ### Market Commands
 
 #### get-market-top-holders
 
-| Option | Description |
-|--------|-------------|
-| `-m, --market <ID>` | Market ID (required, multiple) |
-| `-l, --limit <N>` | Limit results (0-500, default: 100) |
+| Option              | Description                            |
+| ------------------- | -------------------------------------- |
+| `-m, --market <ID>` | Market ID (required, multiple)         |
+| `-l, --limit <N>`   | Limit results (0-500, default: 100)    |
 | `--min-balance <N>` | Minimum balance (0-999999, default: 1) |
 
 #### get-open-interest
 
-| Option | Description |
-|--------|-------------|
+| Option              | Description                    |
+| ------------------- | ------------------------------ |
 | `-m, --market <ID>` | Market ID (required, multiple) |
 
 #### get-event-live-volume
 
-| Option | Description |
-|--------|-------------|
+| Option                | Description               |
+| --------------------- | ------------------------- |
 | `-i, --id <EVENT_ID>` | Event ID (required, >= 1) |
 
 ---
@@ -153,43 +153,43 @@ Discovery and search metadata API.
 
 ### Core Listings
 
-| Command | Options |
-|---------|---------|
-| `get-sports` | - |
-| `get-teams` | `-l`, `-o`, `--league`, `--name`, `--abbreviation` |
-| `get-tags` | `-l`, `-o`, `--include-template`, `--is-carousel` |
-| `get-series` | `-l`, `-o`, `--slug`, `--closed`, `--recurrence` |
-| `get-events` | `-l`, `-o`, `--tag-id`, `--exclude-tag-id`, `--active`, `--closed`, `--related-tags`, `--order`, `--ascending` |
-| `get-markets` | `-l`, `-o`, `--id`, `--slug`, `--tag-id`, `--event-id`, `--related-tags`, `--closed`, `--include-tag` |
+| Command       | Options                                                                                                        |
+| ------------- | -------------------------------------------------------------------------------------------------------------- |
+| `get-sports`  | -                                                                                                              |
+| `get-teams`   | `-l`, `-o`, `--league`, `--name`, `--abbreviation`                                                             |
+| `get-tags`    | `-l`, `-o`, `--include-template`, `--is-carousel`                                                              |
+| `get-series`  | `-l`, `-o`, `--slug`, `--closed`, `--recurrence`                                                               |
+| `get-events`  | `-l`, `-o`, `--tag-id`, `--exclude-tag-id`, `--active`, `--closed`, `--related-tags`, `--order`, `--ascending` |
+| `get-markets` | `-l`, `-o`, `--id`, `--slug`, `--tag-id`, `--event-id`, `--related-tags`, `--closed`, `--include-tag`          |
 
 ### Single-Entity Lookups
 
-| Command | Arguments |
-|---------|-----------|
-| `get-tag-by-id` | `<TAG_ID>` |
-| `get-tag-by-slug` | `<SLUG>` `[--include-template]` |
-| `get-tag-relationships-by-tag` | `<TAG_ID>` `[--status]` `[--omit-empty]` |
-| `get-tags-related-to-tag` | `<TAG_ID>` `[--status]` `[--omit-empty]` |
-| `get-event-by-id` | `<ID>` `[--include-chat]` `[--include-template]` |
-| `get-event-by-slug` | `<SLUG>` `[--include-chat]` `[--include-template]` |
-| `get-event-tags` | `<EVENT_ID>` |
-| `get-market-by-id` | `<ID>` `[--include-tag]` |
-| `get-market-by-slug` | `<SLUG>` `[--include-tag]` |
-| `get-market-tags` | `<MARKET_ID>` |
-| `get-series-by-id` | `<SERIES_ID>` `[--include-chat]` |
+| Command                        | Arguments                                          |
+| ------------------------------ | -------------------------------------------------- |
+| `get-tag-by-id`                | `<TAG_ID>`                                         |
+| `get-tag-by-slug`              | `<SLUG>` `[--include-template]`                    |
+| `get-tag-relationships-by-tag` | `<TAG_ID>` `[--status]` `[--omit-empty]`           |
+| `get-tags-related-to-tag`      | `<TAG_ID>` `[--status]` `[--omit-empty]`           |
+| `get-event-by-id`              | `<ID>` `[--include-chat]` `[--include-template]`   |
+| `get-event-by-slug`            | `<SLUG>` `[--include-chat]` `[--include-template]` |
+| `get-event-tags`               | `<EVENT_ID>`                                       |
+| `get-market-by-id`             | `<ID>` `[--include-tag]`                           |
+| `get-market-by-slug`           | `<SLUG>` `[--include-tag]`                         |
+| `get-market-tags`              | `<MARKET_ID>`                                      |
+| `get-series-by-id`             | `<SERIES_ID>` `[--include-chat]`                   |
 
 ### Comments
 
-| Command | Arguments |
-|---------|-----------|
-| `get-comments` | `--parent-entity-type` `--parent-entity-id` `[-l]` `[-o]` `[--get-positions]` `[--holders-only]` |
-| `get-comment-by-id` | `<ID>` `[--get-positions]` |
-| `get-comments-by-user-address` | `<ADDRESS>` `[-l]` `[-o]` `[--order]` `[--ascending]` |
+| Command                        | Arguments                                                                                        |
+| ------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `get-comments`                 | `--parent-entity-type` `--parent-entity-id` `[-l]` `[-o]` `[--get-positions]` `[--holders-only]` |
+| `get-comment-by-id`            | `<ID>` `[--get-positions]`                                                                       |
+| `get-comments-by-user-address` | `<ADDRESS>` `[-l]` `[-o]` `[--order]` `[--ascending]`                                            |
 
 ### Search
 
-| Command | Arguments |
-|---------|-----------|
+| Command  | Arguments                                                                                                    |
+| -------- | ------------------------------------------------------------------------------------------------------------ |
 | `search` | `"<QUERY>"` `[--cache]` `[--events-status]` `[--events-tag]` `[--limit-per-type]` `[--page]` `[--optimized]` |
 
 ---
@@ -200,26 +200,26 @@ Order book data, pricing, and spreads.
 
 ### Order Book
 
-| Command | Options |
-|---------|---------|
-| `get-order-book` | `-t <TOKEN_ID>` |
+| Command           | Options                                |
+| ----------------- | -------------------------------------- |
+| `get-order-book`  | `-t <TOKEN_ID>`                        |
 | `get-order-books` | `-t <TOKEN_ID>` (multiple) `[-s SIDE]` |
 
 ### Pricing
 
-| Command | Options |
-|---------|---------|
-| `get-market-price` | `-t <TOKEN_ID>` `-s <SIDE>` |
-| `get-market-prices` | - (may return API error) |
-| `get-midpoint-price` | `-t <TOKEN_ID>` |
-| `get-price-history` | `-m <TOKEN_ID>` `[--start-ts]` `[--end-ts]` `[-i INTERVAL]` `[-r FIDELITY]` |
+| Command              | Options                                                                     |
+| -------------------- | --------------------------------------------------------------------------- |
+| `get-market-price`   | `-t <TOKEN_ID>` `-s <SIDE>`                                                 |
+| `get-market-prices`  | - (may return API error)                                                    |
+| `get-midpoint-price` | `-t <TOKEN_ID>`                                                             |
+| `get-price-history`  | `-m <TOKEN_ID>` `[--start-ts]` `[--end-ts]` `[-i INTERVAL]` `[-r FIDELITY]` |
 
 **Interval options**: 1m, 1h, 6h, 1d, 1w, max
 
 ### Spreads
 
-| Command | Options |
-|---------|---------|
+| Command       | Options                    |
+| ------------- | -------------------------- |
 | `get-spreads` | `-t <TOKEN_ID>` (multiple) |
 
 ---
@@ -236,17 +236,17 @@ Subscribe to real-time data streams.
 polymarket rtds subscribe --topic <TOPIC> [OPTIONS]
 ```
 
-| Option | Description |
-|--------|-------------|
-| `-t, --topic <TOPIC>` | Topic to subscribe (required) |
-| `-T, --message-type <TYPE>` | Message type, `*` for all (default: `*`) |
-| `-f, --filter <JSON>` | Filter in JSON format |
-| `--clob-key <KEY>` | CLOB API key (or `POLY_API_KEY` env) |
-| `--clob-secret <SECRET>` | CLOB API secret (or `POLY_API_SECRET` env) |
-| `--clob-passphrase <PASS>` | CLOB passphrase (or `POLY_PASSPHRASE` env) |
-| `-n, --max-messages <N>` | Max messages to receive (default: 10) |
-| `--timeout <SECS>` | Timeout in seconds (default: 60) |
-| `-o, --output <FORMAT>` | `json` or `compact` (default: json) |
+| Option                      | Description                                |
+| --------------------------- | ------------------------------------------ |
+| `-t, --topic <TOPIC>`       | Topic to subscribe (required)              |
+| `-T, --message-type <TYPE>` | Message type, `*` for all (default: `*`)   |
+| `-f, --filter <JSON>`       | Filter in JSON format                      |
+| `--clob-key <KEY>`          | CLOB API key (or `POLY_API_KEY` env)       |
+| `--clob-secret <SECRET>`    | CLOB API secret (or `POLY_API_SECRET` env) |
+| `--clob-passphrase <PASS>`  | CLOB passphrase (or `POLY_PASSPHRASE` env) |
+| `-n, --max-messages <N>`    | Max messages to receive (default: 10)      |
+| `--timeout <SECS>`          | Timeout in seconds (default: 60)           |
+| `-o, --output <FORMAT>`     | `json` or `compact` (default: json)        |
 
 **Available Topics**: `activity`, `comments`, `rfq`, `crypto_prices`, `crypto_prices_chainlink`, `equity_prices`, `clob_user`, `clob_market`
 
@@ -278,12 +278,12 @@ Subscribe to market data (order book, price changes, trades).
 polymarket clob-ws market --asset-ids <TOKEN_IDS> [OPTIONS]
 ```
 
-| Option | Description |
-|--------|-------------|
-| `-a, --asset-ids <IDS>` | Asset IDs (token IDs), comma-separated (required) |
-| `-n, --max-messages <N>` | Max messages to receive (default: 10) |
-| `--timeout <SECS>` | Timeout in seconds (default: 60) |
-| `-o, --output <FORMAT>` | `json` or `compact` (default: json) |
+| Option                   | Description                                       |
+| ------------------------ | ------------------------------------------------- |
+| `-a, --asset-ids <IDS>`  | Asset IDs (token IDs), comma-separated (required) |
+| `-n, --max-messages <N>` | Max messages to receive (default: 10)             |
+| `--timeout <SECS>`       | Timeout in seconds (default: 60)                  |
+| `-o, --output <FORMAT>`  | `json` or `compact` (default: json)               |
 
 ### User Channel
 
@@ -293,15 +293,15 @@ Subscribe to user events (orders, trades) - requires authentication.
 polymarket clob-ws user --market-ids <IDS> [OPTIONS]
 ```
 
-| Option | Description |
-|--------|-------------|
+| Option                   | Description                                            |
+| ------------------------ | ------------------------------------------------------ |
 | `-m, --market-ids <IDS>` | Market IDs (condition IDs), comma-separated (required) |
-| `--api-key <KEY>` | API key (or `POLY_API_KEY` env) |
-| `--api-secret <SECRET>` | API secret (or `POLY_API_SECRET` env) |
-| `--passphrase <PASS>` | Passphrase (or `POLY_PASSPHRASE` env) |
-| `-n, --max-messages <N>` | Max messages to receive (default: 10) |
-| `--timeout <SECS>` | Timeout in seconds (default: 60) |
-| `-o, --output <FORMAT>` | `json` or `compact` (default: json) |
+| `--api-key <KEY>`        | API key (or `POLY_API_KEY` env)                        |
+| `--api-secret <SECRET>`  | API secret (or `POLY_API_SECRET` env)                  |
+| `--passphrase <PASS>`    | Passphrase (or `POLY_PASSPHRASE` env)                  |
+| `-n, --max-messages <N>` | Max messages to receive (default: 10)                  |
+| `--timeout <SECS>`       | Timeout in seconds (default: 60)                       |
+| `-o, --output <FORMAT>`  | `json` or `compact` (default: json)                    |
 
 ### Examples
 
