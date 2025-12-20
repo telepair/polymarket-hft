@@ -211,6 +211,52 @@ pub enum MarketEvent {
 }
 ```
 
+## Metrics & State Types 📋 PLANNED
+
+```rust
+/// Metric stored in TimescaleDB
+pub struct Metric {
+    pub time: DateTime<Utc>,
+    pub source: String,           // "cmc", "cg", "alt", "polymarket"
+    pub name: String,             // "fear_and_greed", "btc_price"
+    pub value: f64,
+    pub labels: HashMap<String, String>,
+}
+
+/// State entry stored in Redis
+pub struct StateEntry {
+    pub key: String,              // "state:cmc:fear_and_greed"
+    pub value: serde_json::Value,
+    pub ttl: Option<Duration>,
+}
+
+/// Conversion traits (implemented per API response type)
+pub trait ToMetrics {
+    fn to_metrics(&self, source: &str) -> Vec<Metric>;
+}
+
+pub trait ToState {
+    fn to_state(&self, source: &str) -> Vec<StateEntry>;
+}
+```
+
+## Scrape Configuration 📋 PLANNED
+
+YAML/JSON configuration for scheduled data collection:
+
+```yaml
+scrape_jobs:
+  - id: alt_fear_and_greed
+    source: alternativeme
+    endpoint: get_fear_and_greed
+    params: {}
+    targets: [Metrics, State]
+    schedule:
+      type: interval
+      interval: 5m
+    state_ttl: 15m
+```
+
 ## Directory Structure
 
 ```text
@@ -218,17 +264,28 @@ src/
 ├── client/              # API clients
 │   ├── polymarket/      # ✅ Polymarket APIs (Data, CLOB, Gamma, RTDS)
 │   ├── coinmarketcap/   # ✅ CoinMarketCap APIs (Listings, Metrics, F&G)
+│   ├── coingecko/       # ✅ CoinGecko APIs (Coins, Exchanges, Charts)
+│   ├── alternativeme/   # ✅ Alternative.me APIs (Fear&Greed, Ticker)
 │   ├── http.rs          # ✅ Shared HTTP client with retry
 │   └── {other}/         # 📋 Future data sources
-├── engine/              # 📋 HFT engine
-│   ├── events.rs        #    MarketEvent definitions
-│   ├── dispatcher.rs    #    Message dispatcher
-│   ├── ingestors/       #    WS, Poller, Cron actors
-│   ├── state.rs         #    State Manager
+├── engine/              # 📋 Data engine
+│   ├── mod.rs           #    Module exports
+│   ├── types.rs         #    Metric, StateEntry, traits
+│   ├── config.rs        #    ScrapeJob, Schedule configuration
+│   ├── scheduler.rs     #    Poller Actor (interval/cron)
+│   ├── dispatcher.rs    #    Message router
 │   ├── archiver.rs      #    TimescaleDB batch writer
+│   ├── state.rs         #    Redis state manager
 │   ├── policy/          #    Policy engine (user-defined rules)
 │   └── executor.rs      #    Action executor
-├── storage/             # 📋 Redis + TimescaleDB clients
+├── storage/             # 📋 Database clients
+│   ├── mod.rs           #    Module exports
+│   ├── timescale.rs     #    sqlx PostgreSQL/TimescaleDB
+│   └── redis.rs         #    Redis client wrapper
+├── web/                 # 📋 Web UI (htmx + TailwindCSS)
+│   ├── mod.rs           #    axum router setup
+│   ├── handlers.rs      #    Route handlers
+│   └── templates/       #    askama HTML templates
 └── cli/                 # ✅ CLI commands
 ```
 

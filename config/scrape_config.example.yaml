@@ -1,0 +1,79 @@
+# Example scrape configuration
+#
+# Supported schedule types:
+#   - interval: Run at fixed intervals (e.g., "5m", "1h")
+#   - cron: Run on cron schedule (e.g., "0 * * * *" for hourly)
+#
+# Targets:
+#   - metrics: Store as time-series in TimescaleDB
+#   - state: Cache current value in Redis
+
+scrape_jobs:
+  # Alternative.me Fear & Greed Index
+  - id: alt_fear_and_greed
+    source: alternativeme
+    endpoint: get_fear_and_greed
+    params: {}
+    targets: [metrics, state]
+    schedule:
+      type: interval
+      interval: 5m
+    state_ttl: 15m
+
+  # Alternative.me Global Market Data
+  - id: alt_global
+    source: alternativeme
+    endpoint: get_global
+    params:
+      convert: USD
+    targets: [metrics, state]
+    schedule:
+      type: interval
+      interval: 10m
+    state_ttl: 15m
+
+  # CoinMarketCap Fear & Greed Index
+  - id: cmc_fear_and_greed
+    source: coinmarketcap
+    endpoint: get_fear_and_greed
+    params: {}
+    targets: [metrics, state]
+    schedule:
+      type: interval
+      interval: 15m
+    state_ttl: 30m
+
+  # CoinMarketCap Global Metrics
+  - id: cmc_global_metrics
+    source: coinmarketcap
+    endpoint: get_global_metrics
+    params:
+      convert: USD
+    targets: [metrics]
+    schedule:
+      type: cron
+      expression: "0 * * * *" # Every hour
+
+  # CoinGecko Global Data
+  - id: cg_global
+    source: coingecko
+    endpoint: get_global
+    params: {}
+    targets: [metrics, state]
+    schedule:
+      type: interval
+      interval: 5m
+    state_ttl: 10m
+
+  # CoinGecko Top 10 Markets
+  - id: cg_top_markets
+    source: coingecko
+    endpoint: get_coins_markets
+    params:
+      vs_currency: usd
+      per_page: 10
+    targets: [metrics, state]
+    schedule:
+      type: interval
+      interval: 1m
+    state_ttl: 5m

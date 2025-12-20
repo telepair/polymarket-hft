@@ -13,7 +13,7 @@ BINARY_NAME  := polymarket
 # =============================================================================
 # PHONY Targets
 # =============================================================================
-.PHONY: all fmt lint lint-rust lint-md check test test-integration test-all doc doc-open build release install run clean update help
+.PHONY: all fmt lint lint-rust lint-md check test test-integration test-all doc doc-open build release install dev dev-down clean update help
 
 # =============================================================================
 # Development Workflow
@@ -85,8 +85,21 @@ install:                                 ## Install binary to ~/.cargo/bin
 	@echo "Installing $(BINARY_NAME)..."
 	@$(CARGO) install $(CARGO_FLAGS) --path .
 
-run:                                     ## Run CLI (use ARGS="..." for arguments)
-	@$(CARGO) run $(CARGO_FLAGS) -- $(ARGS)
+dev:                                     ## Start dev environment (Docker + web server)
+	@echo "Starting local services..."
+	@docker-compose up -d
+	@echo "Waiting for services to be ready..."
+	@sleep 3
+	@echo "Services started. TimescaleDB: localhost:5432, Redis: localhost:6379"
+	@echo "Starting web server on http://localhost:3000..."
+	@DATABASE_URL=postgres://polymarket:polymarket@localhost/polymarket \
+		REDIS_URL=redis://localhost:6379 \
+		RUST_LOG=info \
+		$(CARGO) run $(CARGO_FLAGS) -- serve
+
+dev-down:                                ## Stop dev environment
+	@echo "Stopping local services..."
+	@docker-compose down
 
 # =============================================================================
 # Maintenance
@@ -113,5 +126,5 @@ help:                                    ## Show available targets
 	@echo ""
 	@echo "Examples:"
 	@echo "  make                    # Run full CI pipeline"
+	@echo "  make dev                # Start dev environment"
 	@echo "  make test-integration   # Run network tests"
-	@echo "  make run ARGS='data health'"

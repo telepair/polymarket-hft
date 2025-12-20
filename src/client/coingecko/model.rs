@@ -533,3 +533,111 @@ pub type OhlcCandle = Vec<f64>;
 /// Response from /coins/{id}/ohlc endpoint.
 /// Array of OHLC candles.
 pub type OhlcResponse = Vec<OhlcCandle>;
+
+// =============================================================================
+// ToMetrics / ToState Implementations
+// =============================================================================
+
+use crate::engine::{Metric, StateEntry, ToMetrics, ToState};
+use chrono::Utc;
+
+impl ToMetrics for GlobalResponse {
+    fn to_metrics(&self, source: &str) -> Vec<Metric> {
+        let mut metrics = Vec::new();
+
+        if let Some(active) = self.data.active_cryptocurrencies {
+            metrics.push(Metric::new(
+                source,
+                "active_cryptocurrencies",
+                active as f64,
+            ));
+        }
+        if let Some(markets) = self.data.markets {
+            metrics.push(Metric::new(source, "markets", markets as f64));
+        }
+
+        // Add market cap by currency
+        for (currency, cap) in &self.data.total_market_cap {
+            metrics.push(
+                Metric::new(source, "total_market_cap", *cap).with_label("currency", currency),
+            );
+        }
+
+        // Add volume by currency
+        for (currency, vol) in &self.data.total_volume {
+            metrics
+                .push(Metric::new(source, "total_volume", *vol).with_label("currency", currency));
+        }
+
+        // Add dominance by coin
+        for (coin, pct) in &self.data.market_cap_percentage {
+            metrics
+                .push(Metric::new(source, "market_cap_percentage", *pct).with_label("coin", coin));
+        }
+
+        metrics
+    }
+}
+
+impl ToState for GlobalResponse {
+    fn to_state(&self, source: &str) -> Vec<StateEntry> {
+        vec![StateEntry::new(
+            format!("state:{}:global", source),
+            serde_json::json!({
+                "active_cryptocurrencies": self.data.active_cryptocurrencies,
+                "markets": self.data.markets,
+                "market_cap_percentage": self.data.market_cap_percentage,
+                "updated_at": Utc::now().to_rfc3339(),
+            }),
+        )]
+    }
+}
+
+impl ToMetrics for CoinsMarketsResponse {
+    fn to_metrics(&self, source: &str) -> Vec<Metric> {
+        self.iter()
+            .flat_map(|coin| {
+                let mut metrics = Vec::new();
+                if let Some(price) = coin.current_price {
+                    metrics.push(
+                        Metric::new(source, "price", price).with_label("symbol", &coin.symbol),
+                    );
+                }
+                if let Some(market_cap) = coin.market_cap {
+                    metrics.push(
+                        Metric::new(source, "market_cap", market_cap)
+                            .with_label("symbol", &coin.symbol),
+                    );
+                }
+                if let Some(volume) = coin.total_volume {
+                    metrics.push(
+                        Metric::new(source, "volume", volume).with_label("symbol", &coin.symbol),
+                    );
+                }
+                metrics
+            })
+            .collect()
+    }
+}
+
+impl ToState for CoinsMarketsResponse {
+    fn to_state(&self, source: &str) -> Vec<StateEntry> {
+        self.iter()
+            .map(|coin| {
+                StateEntry::new(
+                    format!("state:{}:coin:{}", source, coin.id),
+                    serde_json::json!({
+                        "id": coin.id,
+                        "symbol": coin.symbol,
+                        "name": coin.name,
+                        "current_price": coin.current_price,
+                        "market_cap": coin.market_cap,
+                        "market_cap_rank": coin.market_cap_rank,
+                        "total_volume": coin.total_volume,
+                        "updated_at": Utc::now().to_rfc3339(),
+                    }),
+                )
+            })
+            .collect()
+    }
+}

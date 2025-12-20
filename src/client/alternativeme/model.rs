@@ -188,3 +188,135 @@ pub struct GetFearAndGreedRequest {
     /// Date format: "us", "cn", "kr", "world".
     pub date_format: Option<String>,
 }
+
+// =============================================================================
+// ToMetrics / ToState Implementations
+// =============================================================================
+
+use crate::engine::{Metric, StateEntry, ToMetrics, ToState};
+use chrono::Utc;
+
+impl ToMetrics for FearAndGreedResponse {
+    fn to_metrics(&self, source: &str) -> Vec<Metric> {
+        self.data
+            .iter()
+            .filter_map(|d| {
+                d.value.parse::<f64>().ok().map(|value| {
+                    Metric::new(source, "fear_and_greed_index", value)
+                        .with_label("classification", &d.value_classification)
+                })
+            })
+            .collect()
+    }
+}
+
+impl ToState for FearAndGreedResponse {
+    fn to_state(&self, source: &str) -> Vec<StateEntry> {
+        self.data
+            .first()
+            .map(|d| {
+                StateEntry::new(
+                    format!("state:{}:fear_and_greed", source),
+                    serde_json::json!({
+                        "value": d.value,
+                        "classification": d.value_classification,
+                        "timestamp": d.timestamp,
+                        "updated_at": Utc::now().to_rfc3339(),
+                    }),
+                )
+            })
+            .into_iter()
+            .collect()
+    }
+}
+
+impl ToMetrics for GlobalResponse {
+    fn to_metrics(&self, source: &str) -> Vec<Metric> {
+        let mut metrics = vec![
+            Metric::new(
+                source,
+                "active_cryptocurrencies",
+                self.data.active_cryptocurrencies as f64,
+            ),
+            Metric::new(source, "active_markets", self.data.active_markets as f64),
+            Metric::new(
+                source,
+                "bitcoin_dominance",
+                self.data.bitcoin_percentage_of_market_cap,
+            ),
+        ];
+
+        // Add market cap and volume for each currency
+        for (currency, quote) in &self.data.quotes {
+            metrics.push(
+                Metric::new(source, "total_market_cap", quote.total_market_cap)
+                    .with_label("currency", currency),
+            );
+            metrics.push(
+                Metric::new(source, "total_volume_24h", quote.total_volume_24h)
+                    .with_label("currency", currency),
+            );
+        }
+
+        metrics
+    }
+}
+
+impl ToState for GlobalResponse {
+    fn to_state(&self, source: &str) -> Vec<StateEntry> {
+        vec![StateEntry::new(
+            format!("state:{}:global", source),
+            serde_json::json!({
+                "active_cryptocurrencies": self.data.active_cryptocurrencies,
+                "active_markets": self.data.active_markets,
+                "bitcoin_dominance": self.data.bitcoin_percentage_of_market_cap,
+                "quotes": self.data.quotes,
+                "updated_at": Utc::now().to_rfc3339(),
+            }),
+        )]
+    }
+}
+
+impl ToMetrics for TickerArrayResponse {
+    fn to_metrics(&self, source: &str) -> Vec<Metric> {
+        self.data
+            .iter()
+            .flat_map(|ticker| {
+                ticker.quotes.iter().flat_map(|(currency, quote)| {
+                    vec![
+                        Metric::new(source, "price", quote.price)
+                            .with_label("symbol", &ticker.symbol)
+                            .with_label("currency", currency),
+                        Metric::new(source, "market_cap", quote.market_cap)
+                            .with_label("symbol", &ticker.symbol)
+                            .with_label("currency", currency),
+                        Metric::new(source, "volume_24h", quote.volume_24h)
+                            .with_label("symbol", &ticker.symbol)
+                            .with_label("currency", currency),
+                    ]
+                })
+            })
+            .collect()
+    }
+}
+
+impl ToState for TickerArrayResponse {
+    fn to_state(&self, source: &str) -> Vec<StateEntry> {
+        self.data
+            .iter()
+            .map(|ticker| {
+                StateEntry::new(
+                    format!("state:{}:ticker:{}", source, ticker.symbol.to_lowercase()),
+                    serde_json::json!({
+                        "id": ticker.id,
+                        "name": ticker.name,
+                        "symbol": ticker.symbol,
+                        "rank": ticker.rank,
+                        "quotes": ticker.quotes,
+                        "updated_at": Utc::now().to_rfc3339(),
+                    }),
+                )
+            })
+            .collect()
+    }
+}

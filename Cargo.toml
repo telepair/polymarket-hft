@@ -38,9 +38,25 @@ sha2 = "0.10"
 base64 = "0.22"
 
 # Utilities
-chrono = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
 hex = "0.4"
 rand = "0.8"
+
+# Storage
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "chrono", "json"] }
+redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
+
+# Web
+axum = "0.8"
+askama = { version = "0.12", features = ["with-axum"] }
+askama_axum = "0.4"
+tower-http = { version = "0.6", features = ["fs", "cors"] }
+
+# Scheduling
+tokio-cron-scheduler = "0.13"
+humantime-serde = "1.1"
+serde_yaml = "0.9"
+humantime = "2.3.0"
 
 [[bin]]
 name = "polymarket"

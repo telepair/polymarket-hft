@@ -26,6 +26,9 @@
 //! ```
 
 pub mod client;
+pub mod engine;
 pub mod error;
+pub mod storage;
+pub mod web;
 
 pub use error::{PolymarketError, Result};

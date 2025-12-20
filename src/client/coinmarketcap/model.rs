@@ -553,3 +553,142 @@ pub struct PriceConversionRequest {
     /// Historical time for conversion (ISO 8601 timestamp).
     pub time: Option<String>,
 }
+
+// =============================================================================
+// ToMetrics / ToState Implementations
+// =============================================================================
+
+use crate::engine::{Metric, StateEntry, ToMetrics, ToState};
+use chrono::Utc;
+
+impl ToMetrics for FearAndGreedResponse {
+    fn to_metrics(&self, source: &str) -> Vec<Metric> {
+        vec![
+            Metric::new(source, "fear_and_greed_index", self.data.value)
+                .with_label("classification", &self.data.value_classification),
+        ]
+    }
+}
+
+impl ToState for FearAndGreedResponse {
+    fn to_state(&self, source: &str) -> Vec<StateEntry> {
+        vec![StateEntry::new(
+            format!("state:{}:fear_and_greed", source),
+            serde_json::json!({
+                "value": self.data.value,
+                "classification": self.data.value_classification,
+                "update_time": self.data.update_time,
+                "updated_at": Utc::now().to_rfc3339(),
+            }),
+        )]
+    }
+}
+
+impl ToMetrics for GlobalMetricsQuotesLatestResponse {
+    fn to_metrics(&self, source: &str) -> Vec<Metric> {
+        let mut metrics = vec![
+            Metric::new(
+                source,
+                "active_cryptocurrencies",
+                self.data.active_cryptocurrencies as f64,
+            ),
+            Metric::new(
+                source,
+                "total_cryptocurrencies",
+                self.data.total_cryptocurrencies as f64,
+            ),
+            Metric::new(
+                source,
+                "active_exchanges",
+                self.data.active_exchanges as f64,
+            ),
+            Metric::new(source, "btc_dominance", self.data.btc_dominance),
+            Metric::new(source, "eth_dominance", self.data.eth_dominance),
+        ];
+
+        for (currency, quote) in &self.data.quote {
+            metrics.push(
+                Metric::new(source, "total_market_cap", quote.total_market_cap)
+                    .with_label("currency", currency),
+            );
+            metrics.push(
+                Metric::new(source, "total_volume_24h", quote.total_volume_24h)
+                    .with_label("currency", currency),
+            );
+        }
+
+        metrics
+    }
+}
+
+impl ToState for GlobalMetricsQuotesLatestResponse {
+    fn to_state(&self, source: &str) -> Vec<StateEntry> {
+        vec![StateEntry::new(
+            format!("state:{}:global_metrics", source),
+            serde_json::json!({
+                "active_cryptocurrencies": self.data.active_cryptocurrencies,
+                "total_cryptocurrencies": self.data.total_cryptocurrencies,
+                "btc_dominance": self.data.btc_dominance,
+                "eth_dominance": self.data.eth_dominance,
+                "quote": self.data.quote,
+                "updated_at": Utc::now().to_rfc3339(),
+            }),
+        )]
+    }
+}
+
+impl ToMetrics for ListingsLatestResponse {
+    fn to_metrics(&self, source: &str) -> Vec<Metric> {
+        self.data
+            .iter()
+            .flat_map(|crypto| {
+                crypto.quote.iter().flat_map(|(currency, quote)| {
+                    let mut metrics = Vec::new();
+                    if let Some(price) = quote.price {
+                        metrics.push(
+                            Metric::new(source, "price", price)
+                                .with_label("symbol", &crypto.symbol)
+                                .with_label("currency", currency),
+                        );
+                    }
+                    if let Some(market_cap) = quote.market_cap {
+                        metrics.push(
+                            Metric::new(source, "market_cap", market_cap)
+                                .with_label("symbol", &crypto.symbol)
+                                .with_label("currency", currency),
+                        );
+                    }
+                    if let Some(volume) = quote.volume_24h {
+                        metrics.push(
+                            Metric::new(source, "volume_24h", volume)
+                                .with_label("symbol", &crypto.symbol)
+                                .with_label("currency", currency),
+                        );
+                    }
+                    metrics
+                })
+            })
+            .collect()
+    }
+}
+
+impl ToState for ListingsLatestResponse {
+    fn to_state(&self, source: &str) -> Vec<StateEntry> {
+        self.data
+            .iter()
+            .map(|crypto| {
+                StateEntry::new(
+                    format!("state:{}:crypto:{}", source, crypto.symbol.to_lowercase()),
+                    serde_json::json!({
+                        "id": crypto.id,
+                        "name": crypto.name,
+                        "symbol": crypto.symbol,
+                        "cmc_rank": crypto.cmc_rank,
+                        "quote": crypto.quote,
+                        "updated_at": Utc::now().to_rfc3339(),
+                    }),
+                )
+            })
+            .collect()
+    }
+}
