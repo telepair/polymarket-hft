@@ -85,8 +85,8 @@ install:                                 ## Install binary to ~/.cargo/bin
 	@echo "Installing $(BINARY_NAME)..."
 	@$(CARGO) install $(CARGO_FLAGS) --path .
 
-run:                                     ## Run CLI (use ARGS="..." for arguments)
-	@$(CARGO) run $(CARGO_FLAGS) -- $(ARGS)
+dev: build                               ## Build and run the CLI in development mode
+	@RUST_LOG=debug ./target/debug/polymarket serve --config configs/config.yaml
 
 # =============================================================================
 # Maintenance

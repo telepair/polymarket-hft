@@ -27,7 +27,7 @@ pub enum AlternativeMeError {
 /// Response metadata common to most endpoints.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Metadata {
-    pub timestamp: i64,
+    pub timestamp: Option<i64>,
     #[serde(default)]
     pub num_cryptocurrencies: Option<i32>,
     #[serde(default)]
@@ -72,42 +72,11 @@ pub struct Ticker {
     pub last_updated: i64,
 }
 
-/// Request parameters for /v2/ticker/ endpoint.
-#[derive(Debug, Clone, Default)]
-pub struct GetTickerRequest {
-    /// Limit the number of returned results. Default is 100, use 0 for all.
-    pub limit: Option<i32>,
-    /// Starting position for pagination.
-    pub start: Option<i32>,
-    /// Currency conversion target (USD, EUR, BTC, etc.).
-    pub convert: Option<String>,
-    /// Response structure: "dictionary" or "array".
-    pub structure: Option<String>,
-    /// Sort field: id, rank, volume_24h, percent_change_24h, price, etc.
-    pub sort: Option<String>,
-}
-
 /// Response for /v2/ticker/ endpoint (array structure).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TickerArrayResponse {
     pub data: Vec<Ticker>,
     pub metadata: Metadata,
-}
-
-/// Response for /v2/ticker/ endpoint (dictionary structure).
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TickerDictResponse {
-    pub data: HashMap<String, Ticker>,
-    pub metadata: Metadata,
-}
-
-/// Request parameters for /v2/ticker/{id}/ endpoint.
-#[derive(Debug, Clone, Default)]
-pub struct GetTickerByIdRequest {
-    /// Currency conversion target (USD, EUR, BTC, etc.).
-    pub convert: Option<String>,
-    /// Response structure: "dictionary" or "array".
-    pub structure: Option<String>,
 }
 
 // =============================================================================
@@ -138,13 +107,6 @@ pub struct GlobalResponse {
     pub metadata: Metadata,
 }
 
-/// Request parameters for /v2/global/ endpoint.
-#[derive(Debug, Clone, Default)]
-pub struct GetGlobalRequest {
-    /// Currency conversion target (USD, EUR, BTC, etc.).
-    pub convert: Option<String>,
-}
-
 // =============================================================================
 // Fear and Greed Index (/fng/)
 // =============================================================================
@@ -163,28 +125,10 @@ pub struct FearAndGreedData {
     pub time_until_update: Option<String>,
 }
 
-/// Metadata for Fear and Greed response.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FearAndGreedMetadata {
-    #[serde(default)]
-    pub error: Option<String>,
-}
-
 /// Response for /fng/ endpoint.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FearAndGreedResponse {
     pub name: String,
     pub data: Vec<FearAndGreedData>,
-    pub metadata: FearAndGreedMetadata,
-}
-
-/// Request parameters for /fng/ endpoint.
-#[derive(Debug, Clone, Default)]
-pub struct GetFearAndGreedRequest {
-    /// Limit the number of returned results. Default is 1, use 0 for all.
-    pub limit: Option<i32>,
-    /// Response format: "json" or "csv".
-    pub format: Option<String>,
-    /// Date format: "us", "cn", "kr", "world".
-    pub date_format: Option<String>,
+    pub metadata: Metadata,
 }

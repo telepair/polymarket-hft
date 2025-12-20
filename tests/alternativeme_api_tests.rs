@@ -3,9 +3,7 @@
 //! Tests marked with `#[ignore]` require network access to the live API.
 //! Run them with: `cargo test --test alternativeme_api_tests -- --ignored --nocapture`
 
-use polymarket_hft::client::alternativeme::{
-    Client, GetFearAndGreedRequest, GetGlobalRequest, GetTickerByIdRequest, GetTickerRequest,
-};
+use polymarket_hft::client::alternativeme::Client;
 
 // =============================================================================
 // Ticker Tests
@@ -13,16 +11,11 @@ use polymarket_hft::client::alternativeme::{
 
 #[tokio::test]
 #[ignore = "requires network access to live API"]
-async fn test_get_ticker() {
+async fn test_list_ticker() {
     let client = Client::new();
-    let result = client
-        .get_ticker(GetTickerRequest {
-            limit: Some(5),
-            ..Default::default()
-        })
-        .await;
+    let result = client.list_ticker(Some(5), None, None).await;
 
-    assert!(result.is_ok(), "Failed to get ticker: {:?}", result.err());
+    assert!(result.is_ok(), "Failed to list ticker: {:?}", result.err());
 
     let ticker = result.unwrap();
     assert!(!ticker.data.is_empty(), "Ticker data should not be empty");
@@ -45,11 +38,9 @@ async fn test_get_ticker() {
 
 #[tokio::test]
 #[ignore = "requires network access to live API"]
-async fn test_get_ticker_by_id() {
+async fn test_get_ticker() {
     let client = Client::new();
-    let result = client
-        .get_ticker_by_id("bitcoin", GetTickerByIdRequest::default())
-        .await;
+    let result = client.get_ticker("bitcoin".to_string()).await;
 
     assert!(
         result.is_ok(),
@@ -61,7 +52,7 @@ async fn test_get_ticker_by_id() {
     assert!(!ticker.data.is_empty(), "Should return Bitcoin data");
 
     // Find Bitcoin in the response
-    let btc = ticker.data.values().next().unwrap();
+    let btc = ticker.data.first().unwrap();
     assert_eq!(btc.symbol, "BTC");
     assert!(btc.quotes.contains_key("USD"));
 
@@ -80,7 +71,7 @@ async fn test_get_ticker_by_id() {
 #[ignore = "requires network access to live API"]
 async fn test_get_global() {
     let client = Client::new();
-    let result = client.get_global(GetGlobalRequest::default()).await;
+    let result = client.get_global().await;
 
     assert!(result.is_ok(), "Failed to get global: {:?}", result.err());
 
@@ -111,9 +102,7 @@ async fn test_get_global() {
 #[ignore = "requires network access to live API"]
 async fn test_get_fear_and_greed() {
     let client = Client::new();
-    let result = client
-        .get_fear_and_greed(GetFearAndGreedRequest::default())
-        .await;
+    let result = client.get_fear_and_greed(None).await;
 
     assert!(
         result.is_ok(),
@@ -139,12 +128,7 @@ async fn test_get_fear_and_greed() {
 #[ignore = "requires network access to live API"]
 async fn test_get_fear_and_greed_historical() {
     let client = Client::new();
-    let result = client
-        .get_fear_and_greed(GetFearAndGreedRequest {
-            limit: Some(7),
-            ..Default::default()
-        })
-        .await;
+    let result = client.get_fear_and_greed(Some(7)).await;
 
     assert!(
         result.is_ok(),
@@ -173,25 +157,4 @@ async fn test_get_fear_and_greed_historical() {
 #[test]
 fn test_client_creation() {
     let _client = Client::new();
-}
-
-#[test]
-fn test_ticker_request_default() {
-    let request = GetTickerRequest::default();
-    assert!(request.limit.is_none());
-    assert!(request.start.is_none());
-    assert!(request.convert.is_none());
-}
-
-#[test]
-fn test_global_request_default() {
-    let request = GetGlobalRequest::default();
-    assert!(request.convert.is_none());
-}
-
-#[test]
-fn test_fear_and_greed_request_default() {
-    let request = GetFearAndGreedRequest::default();
-    assert!(request.limit.is_none());
-    assert!(request.format.is_none());
 }

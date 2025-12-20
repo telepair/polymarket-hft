@@ -41,6 +41,10 @@ base64 = "0.22"
 chrono = "0.4"
 hex = "0.4"
 rand = "0.8"
+serde_yaml = "0.9"
+tokio-cron-scheduler = "0.15"
+
+
 
 [[bin]]
 name = "polymarket"

@@ -3,7 +3,7 @@ use tracing_subscriber::EnvFilter;
 
 mod cli;
 
-use cli::ds;
+use cli::{ds, serve};
 
 #[derive(Parser)]
 #[command(name = "polymarket")]
@@ -17,7 +17,10 @@ struct Cli {
 enum Commands {
     /// Data source commands (Polymarket and external APIs)
     #[command(subcommand)]
-    Ds(ds::DsCommands),
+    Ds(Box<ds::DsCommands>),
+
+    /// Start the data ingestion server
+    Serve(serve::ServeArgs),
 }
 
 #[tokio::main]
@@ -34,6 +37,9 @@ async fn main() -> anyhow::Result<()> {
         Commands::Ds(ds_cmd) => {
             ds::handle(ds_cmd).await?;
         }
+        Commands::Serve(serve_args) => {
+            serve::handle(serve_args).await?;
+        }
     }
 
     Ok(())
@@ -48,8 +54,11 @@ mod tests {
     fn parses_health_command() {
         let cli = Cli::parse_from(["polymarket", "ds", "data", "health"]);
         match cli.command {
-            Commands::Ds(ds::DsCommands::Data(data::DataCommands::Health)) => {}
-            _ => panic!("expected health command"),
+            Commands::Ds(ref cmd) => match cmd.as_ref() {
+                ds::DsCommands::Data(data::DataCommands::Health) => {}
+                _ => panic!("expected health command"),
+            },
+            _ => panic!("expected ds command"),
         }
     }
 }

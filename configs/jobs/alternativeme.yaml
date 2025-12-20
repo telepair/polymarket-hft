@@ -1,0 +1,28 @@
+# Alternative.me ingestion jobs
+#
+# Multiple jobs can be defined in a single file using the `jobs:` key.
+
+jobs:
+  - name: fear_and_greed
+    datasource: alternativeme
+    method: get_fear_and_greed
+    interval_secs: 30
+
+  - name: global_metrics
+    datasource: alternativeme
+    method: get_global
+    interval_secs: 60
+
+  - name: get_bitcoin
+    datasource: alternativeme
+    params:
+      target: "bitcoin"
+    method: get_ticker
+    interval_secs: 60
+
+  - name: get_ethereum
+    datasource: alternativeme
+    params:
+      target: "ethereum"
+    method: get_ticker
+    interval_secs: 60

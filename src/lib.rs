@@ -26,6 +26,13 @@
 //! ```
 
 pub mod client;
+pub mod config;
 pub mod error;
+pub mod ingestor;
+pub mod storage;
 
 pub use error::{PolymarketError, Result};
+pub use storage::{
+    archiver::Archiver,
+    model::{DataSource, Metric},
+};

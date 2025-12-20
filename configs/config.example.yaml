@@ -1,0 +1,23 @@
+# Serve command configuration
+#
+# This is an example configuration file for the `polymarket serve` command.
+
+# Server configuration
+server:
+  host: "127.0.0.1"
+  port: 8080
+
+# Data source client configurations
+datasources:
+  # Common HTTP client config (used as fallback)
+  common:
+    timeout_secs: 30
+    max_retries: 3
+
+  # Alternative.me specific config (overrides common)
+  # alternativeme:
+  #   timeout_secs: 60
+
+# Ingestion configuration
+ingestion:
+  jobs_dir: "./configs/jobs"
