@@ -20,6 +20,13 @@ pub struct IngestionJob {
     /// Optional parameters to pass to the method.
     #[serde(default)]
     pub params: Option<serde_json::Value>,
+    /// Data retention period in days (default: 7).
+    #[serde(default = "default_retention_days")]
+    pub retention_days: u32,
+}
+
+fn default_retention_days() -> u32 {
+    7
 }
 
 /// Schedule configuration for ingestion jobs.

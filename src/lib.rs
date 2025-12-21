@@ -32,7 +32,4 @@ pub mod ingestor;
 pub mod storage;
 
 pub use error::{PolymarketError, Result};
-pub use storage::{
-    archiver::Archiver,
-    model::{DataSource, Metric},
-};
+pub use storage::{DataSource, LocalStorage, LocalStorageConfig, Metric, StorageBackend};

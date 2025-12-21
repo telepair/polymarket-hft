@@ -24,10 +24,11 @@ This document describes the architecture for the polymarket-hft trading system.
 │  │  └───────────┘  └───────────┘  └───────────┘  └───────────┘          │  │
 │  └───────────────────────────────────────────────────────────────────────┘  │
 │  ┌───────────────────────────────────────────────────────────────────────┐  │
-│  │                    CoinMarketCap API Client                           │  │
-│  │  ┌───────────────────────────────────────────────────────────┐       │  │
-│  │  │  CMC Client (REST) - Listings, Global Metrics, Fear&Greed │       │  │
-│  │  └───────────────────────────────────────────────────────────┘       │  │
+│  │                   Crypto Market Data Clients                          │  │
+│  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐       │  │
+│  │  │  AlternativeMe  │  │    CoinGecko    │  │  CoinMarketCap  │       │  │
+│  │  │  (REST, Free)   │  │  (REST, API Key)│  │  (REST, API Key)│       │  │
+│  │  └─────────────────┘  └─────────────────┘  └─────────────────┘       │  │
 │  └───────────────────────────────────────────────────────────────────────┘  │
 │                                   │                                          │
 │                    ┌──────────────▼──────────────┐                           │
@@ -38,37 +39,43 @@ This document describes the architecture for the polymarket-hft trading system.
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         Ingestors 📋 PLANNED                                │
+│                    Ingestors 🚧 IN PROGRESS                                 │
 │                                                                              │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                          │
 │  │  WS Actor   │  │Poller Actor │  │ Cron Actor  │                          │
-│  │ (RTDS/CLOB) │  │ (REST APIs) │  │  (Daily)    │                          │
+│  │ (RTDS/CLOB) │  │ (REST APIs) │  │  (Interval) │                          │
 │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘                          │
 │         └────────────────┼────────────────┘                                  │
-│                          │ MarketEvent                                       │
+│                          │ Metric                                            │
 │                          ▼                                                   │
 │            ┌─────────────────────────┐                                       │
-│            │       Dispatcher        │                                       │
-│            │  - Message routing      │                                       │
-│            │  - Backpressure control │                                       │
+│            │    IngestorManager      │                                       │
+│            │  - Job scheduling       │                                       │
+│            │  - Cron/Interval based  │                                       │
 │            └────────────┬────────────┘                                       │
 └─────────────────────────┼───────────────────────────────────────────────────┘
                           │
-        ┌─────────────────┼─────────────────┐
-        ▼                 ▼                 ▼
-┌─────────────┐   ┌─────────────┐   ┌─────────────┐
-│  Archiver   │   │   State     │   │   Policy    │
-│ 📋 PLANNED  │   │  Manager    │   │   Engine    │
-│             │   │ 📋 PLANNED  │   │ 📋 PLANNED  │
-└──────┬──────┘   └──────┬──────┘   └──────┬──────┘
-       ▼                 ▼                 ▼
+                          ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                        Storage Layer 📋 PLANNED                             │
+│                   Storage Layer ✅ IMPLEMENTED                              │
 │                                                                              │
-│  ┌────────────────────────┐        ┌────────────────────────┐               │
-│  │     TimescaleDB        │        │         Redis          │               │
-│  │  (Cold/Warm Data)      │        │  (Hot Data, TTL:15min) │               │
-│  └────────────────────────┘        └────────────────────────┘               │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │              StorageBackend Trait (store, get_latest, query_range)  │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                          │                                                   │
+│     ┌────────────────────┴────────────────────┐                             │
+│     ▼                                         ▼                             │
+│  ┌──────────────────────────┐    ┌──────────────────────────┐               │
+│  │ LocalStorage ✅ DEFAULT  │    │ ExternalStorage 📋 PLAN  │               │
+│  │  ┌─────────────────────┐ │    │  ┌─────────────────────┐ │               │
+│  │  │  MemoryCache (moka) │ │    │  │    Redis (Hot)      │ │               │
+│  │  │  TTL: 15min         │ │    │  │    TTL: 15min       │ │               │
+│  │  └─────────────────────┘ │    │  └─────────────────────┘ │               │
+│  │  ┌─────────────────────┐ │    │  ┌─────────────────────┐ │               │
+│  │  │  SQLite (WAL mode)  │ │    │  │    TimescaleDB      │ │               │
+│  │  │  Persistent Storage │ │    │  │    Time-series      │ │               │
+│  │  └─────────────────────┘ │    │  └─────────────────────┘ │               │
+│  └──────────────────────────┘    └──────────────────────────┘               │
 └─────────────────────────────────────────────────────────────────────────────┘
                                           │
                                           ▼
@@ -96,11 +103,23 @@ Multi-source client architecture under `src/client/`. Currently implements Polym
 | Gamma  | REST      | Market metadata, events, search                      |
 | RTDS   | WebSocket | Real-time prices, trades, orderbook streams          |
 
+#### AlternativeMe Client
+
+| Client       | Protocol | Key Features                                               |
+| ------------ | -------- | ---------------------------------------------------------- |
+| AlternativeMe | REST     | Fear & Greed Index, cryptocurrency tickers, global metrics (free, no API key) |
+
+#### CoinGecko Client
+
+| Client   | Protocol | Key Features                                             |
+| -------- | -------- | -------------------------------------------------------- |
+| CoinGecko | REST     | Simple prices, market data, trending, global, OHLC data (API key required) |
+
 #### CoinMarketCap Client
 
 | Client | Protocol | Key Features                                                |
 | ------ | -------- | ----------------------------------------------------------- |
-| CMC    | REST     | Cryptocurrency listings, global metrics, fear & greed index |
+| CMC    | REST     | Cryptocurrency listings, global metrics, fear & greed index (API key required) |
 
 **Shared Infrastructure**:
 
@@ -108,37 +127,67 @@ Multi-source client architecture under `src/client/`. Currently implements Polym
 - WebSocket auto-reconnect with subscription recovery
 - Connection pooling (10 idle connections per host)
 
-### Ingestors 📋 PLANNED
+### Ingestor Manager 🚧 IN PROGRESS
 
-Data collection actors that emit `MarketEvent` messages.
+Schedules and executes data collection jobs based on YAML configuration.
 
-| Actor        | Source              | Description                               |
-| ------------ | ------------------- | ----------------------------------------- |
-| WS Actor     | RTDS/CLOB WebSocket | Real-time price, orderbook, trade streams |
-| Poller Actor | REST APIs           | Market metadata, positions, balances      |
-| Cron Actor   | Scheduled tasks     | Daily snapshots, cleanup, aggregations    |
+| Schedule Type | Description                              |
+| ------------- | ---------------------------------------- |
+| Interval      | Fixed interval (e.g., every 60 seconds)  |
+| Cron          | Cron expression (e.g., `0 0 * * *`)      |
 
-### Dispatcher 📋 PLANNED
+**Features:**
 
-Central message hub routing `MarketEvent` to multiple consumers.
+- Dynamic job loading from YAML configuration
+- Per-job retention period configuration
+- Graceful shutdown handling
 
-**Design Choice**: Dispatcher pattern over `tokio::sync::broadcast`:
+### Storage Layer ✅ IMPLEMENTED
 
-- Independent `mpsc` channel per consumer
-- Slow consumers don't block others
-- Per-consumer message filtering and backpressure
+Pluggable storage backend with write-through caching strategy.
 
-### Processors 📋 PLANNED
+#### StorageBackend Trait
 
-#### Archiver
+Core trait defining storage operations:
 
-Buffers events and batch-writes to TimescaleDB (100 events or 1 second threshold).
+```rust
+pub trait StorageBackend: Send + Sync {
+    fn store(&self, metrics: &[Metric]) -> BoxFuture<'_, Result<()>>;
+    fn get_latest(&self, source: &str, name: &str) -> BoxFuture<'_, Result<Option<Metric>>>;
+    fn query_range(&self, source, name, start, end, limit) -> BoxFuture<'_, Result<Vec<Metric>>>;
+    fn cleanup_before(&self, cutoff_timestamp: i64) -> BoxFuture<'_, Result<u64>>;
+    fn health_check(&self) -> BoxFuture<'_, Result<()>>;
+}
+```
 
-#### State Manager
+#### LocalStorage (Default)
 
-Maintains real-time state using local cache + Redis Pub/Sub to eliminate round-trip latency.
+Combined local storage with in-memory cache and SQLite persistence.
 
-#### Policy Engine
+| Component      | Technology | Purpose                              |
+| -------------- | ---------- | ------------------------------------ |
+| MemoryCache    | moka       | Hot data with TTL (default: 15min)   |
+| SqliteStorage  | sqlx       | Persistent storage with WAL mode     |
+
+**Write Strategy**: Write-through (writes to both cache and SQLite)
+**Read Strategy**: Cache-first (cache hit returns immediately, fallback to SQLite)
+
+**SQLite Optimizations:**
+
+- WAL mode for better concurrency
+- Multi-row INSERT batches (100 rows/batch)
+- Automatic cleanup of old metrics
+
+#### ExternalStorage 📋 PLANNED
+
+Distributed storage for multi-instance deployments.
+
+| Component   | Technology  | Purpose                    |
+| ----------- | ----------- | -------------------------- |
+| Hot Cache   | Redis       | Real-time state, Pub/Sub   |
+| Cold Store  | TimescaleDB | Time-series persistence    |
+
+### Policy Engine 📋 PLANNED
 
 User-defined policies via YAML/JSON configuration. See [Policy Engine Guide](./policy.md) for details.
 
@@ -172,32 +221,57 @@ policies:
 | Notification   | Send alerts via Telegram                  |
 | Audit Logger   | Record all actions to TimescaleDB         |
 
-## Data Layer 📋 PLANNED
+## Data Layer
 
-### Hot Data (Redis)
-
-| Key Pattern                            | Description                   |
-| -------------------------------------- | ----------------------------- |
-| `polymarket:price:{asset_id}`          | Current price, bid, ask       |
-| `polymarket:orderbook:{market}`        | Price levels with sizes       |
-| `polymarket:position:{wallet}:{asset}` | Position size, avg price, PnL |
-
-### Cold Data (TimescaleDB)
+### Local Storage Schema (SQLite) ✅ IMPLEMENTED
 
 ```sql
--- Price time-series with continuous aggregation
-CREATE TABLE prices (
-    time TIMESTAMPTZ NOT NULL, asset_id TEXT NOT NULL,
-    price NUMERIC(20,8), bid NUMERIC(20,8), ask NUMERIC(20,8)
+CREATE TABLE metrics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source TEXT NOT NULL,          -- e.g., 'alternativeme', 'polymarket'
+    name TEXT NOT NULL,            -- e.g., 'fear_and_greed_index'
+    value REAL NOT NULL,
+    timestamp INTEGER NOT NULL,    -- Unix timestamp
+    labels TEXT,                   -- JSON object for additional labels
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
 );
-SELECT create_hypertable('prices', 'time');
 
--- Hourly OHLCV aggregation
-CREATE MATERIALIZED VIEW prices_1h WITH (timescaledb.continuous) AS
-SELECT time_bucket('1 hour', time) AS bucket, asset_id,
-       first(price, time) AS open, max(price) AS high,
-       min(price) AS low, last(price, time) AS close
-FROM prices GROUP BY bucket, asset_id;
+-- Indexes for efficient queries
+CREATE INDEX idx_metrics_source_name_ts ON metrics(source, name, timestamp DESC);
+CREATE INDEX idx_metrics_timestamp ON metrics(timestamp DESC);
+```
+
+### Configuration (YAML)
+
+```yaml
+storage:
+  backend: local  # 'local' or 'external' (future)
+  local:
+    db_path: "data/metrics.db"
+    cache_ttl_secs: 900        # 15 minutes
+    cache_max_capacity: 10000
+```
+
+### External Storage (Future) 📋 PLANNED
+
+#### Hot Data (Redis)
+
+| Key Pattern                   | Description             |
+| ----------------------------- | ----------------------- |
+| `{source}::{name}`            | Latest metric value     |
+| `{source}::{name}::{label}`   | Metric with label       |
+
+#### Cold Data (TimescaleDB)
+
+```sql
+CREATE TABLE metrics (
+    time TIMESTAMPTZ NOT NULL,
+    source TEXT NOT NULL,
+    name TEXT NOT NULL,
+    value DOUBLE PRECISION NOT NULL,
+    labels JSONB
+);
+SELECT create_hypertable('metrics', 'time');
 ```
 
 ## Event Types 📋 PLANNED
@@ -217,19 +291,28 @@ pub enum MarketEvent {
 src/
 ├── client/              # API clients
 │   ├── polymarket/      # ✅ Polymarket APIs (Data, CLOB, Gamma, RTDS)
-│   ├── coinmarketcap/   # ✅ CoinMarketCap APIs (Listings, Metrics, F&G)
+│   ├── alternativeme/   # ✅ Alternative.me APIs (Fear & Greed, Tickers, Global)
+│   ├── coingecko/       # ✅ CoinGecko APIs (Prices, Markets, Trending, OHLC)
+│   ├── coinmarketcap/   # ✅ CoinMarketCap APIs (Listings, Quotes, Metrics)
 │   ├── http.rs          # ✅ Shared HTTP client with retry
 │   └── {other}/         # 📋 Future data sources
-├── engine/              # 📋 HFT engine
-│   ├── events.rs        #    MarketEvent definitions
-│   ├── dispatcher.rs    #    Message dispatcher
-│   ├── ingestors/       #    WS, Poller, Cron actors
-│   ├── state.rs         #    State Manager
-│   ├── archiver.rs      #    TimescaleDB batch writer
+├── config/              # ✅ Configuration management
+│   ├── settings.rs      #    App config, storage config
+│   └── job.rs           #    Ingestion job definitions
+├── ingestor/            # 🚧 Data ingestion
+│   └── manager.rs       #    Job scheduler with cron/interval support
+├── storage/             # ✅ Storage layer
+│   ├── backend.rs       #    StorageBackend trait definition
+│   ├── local.rs         #    LocalStorage (SQLite + moka cache)
+│   ├── sqlite.rs        #    SQLite backend with WAL mode
+│   ├── cache.rs         #    In-memory cache with TTL (moka)
+│   ├── model.rs         #    Metric, DataSource definitions
+│   └── archiver.rs      #    Legacy archiver trait (deprecated)
+├── engine/              # 📋 HFT engine (future)
 │   ├── policy/          #    Policy engine (user-defined rules)
 │   └── executor.rs      #    Action executor
-├── storage/             # 📋 Redis + TimescaleDB clients
 └── cli/                 # ✅ CLI commands
+    └── serve.rs         #    Data ingestion server
 ```
 
 ## Design Decisions
@@ -244,10 +327,12 @@ src/
 
 ## Implementation Phases
 
-| Phase                  | Components                      | Status  |
-| ---------------------- | ------------------------------- | ------- |
-| 1. Core Infrastructure | events, dispatcher, ws ingestor | 📋 Next |
-| 2. Data Persistence    | redis, timescale, archiver      | 📋      |
-| 3. Policy Engine       | state, policy DSL, evaluator    | 📋      |
-| 4. Execution Layer     | executor, notifications         | 📋      |
-| 5. Operations          | Metrics, tracing, health checks | 📋      |
+| Phase                  | Components                              | Status         |
+| ---------------------- | --------------------------------------- | -------------- |
+| 1. Client Layer        | Polymarket, CMC, AlternativeMe clients  | ✅ IMPLEMENTED |
+| 2. Storage Layer       | LocalStorage (SQLite + moka)            | ✅ IMPLEMENTED |
+| 3. Ingestor Manager    | Job scheduling, interval/cron support   | 🚧 IN PROGRESS |
+| 4. External Storage    | Redis + TimescaleDB backend             | 📋 PLANNED     |
+| 5. Policy Engine       | state, policy DSL, evaluator            | 📋 PLANNED     |
+| 6. Execution Layer     | executor, notifications                 | 📋 PLANNED     |
+| 7. Operations          | Metrics, tracing, health checks         | 📋 PLANNED     |

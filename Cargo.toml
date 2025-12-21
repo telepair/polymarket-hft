@@ -44,6 +44,10 @@ rand = "0.8"
 serde_yaml = "0.9"
 tokio-cron-scheduler = "0.15"
 
+# Storage
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite"] }
+moka = { version = "0.12", features = ["future"] }
+
 
 
 [[bin]]

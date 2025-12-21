@@ -14,13 +14,13 @@ impl FearAndGreedResponse {
             .iter()
             .filter_map(|data| {
                 let value: f64 = data.value.parse().ok()?;
-                let timestamp: i64 = data.timestamp.parse().ok()?;
+                let data_timestamp: i64 = data.timestamp.parse().ok()?;
 
                 Some(
                     Metric::new(DataSource::AlternativeMe, "fear_and_greed_index", value)
-                        .with_timestamp(timestamp)
                         .with_label("endpoint", "get_fear_and_greed")
-                        .with_label("classification", &data.value_classification),
+                        .with_label("classification", &data.value_classification)
+                        .with_label("data_timestamp", data_timestamp.to_string()),
                 )
             })
             .collect()
@@ -37,7 +37,7 @@ impl GlobalResponse {
     /// - `total_market_cap`: Total market cap (per currency)
     /// - `total_volume_24h`: Total 24h volume (per currency)
     pub fn to_metrics(&self) -> Vec<Metric> {
-        let timestamp = self.data.last_updated;
+        let data_timestamp = self.data.last_updated.to_string();
         let mut metrics = Vec::new();
 
         metrics.push(
@@ -46,8 +46,8 @@ impl GlobalResponse {
                 "active_cryptocurrencies",
                 self.data.active_cryptocurrencies.into(),
             )
-            .with_timestamp(timestamp)
-            .with_label("endpoint", "get_global"),
+            .with_label("endpoint", "get_global")
+            .with_label("data_timestamp", &data_timestamp),
         );
 
         metrics.push(
@@ -56,8 +56,8 @@ impl GlobalResponse {
                 "active_markets",
                 self.data.active_markets.into(),
             )
-            .with_timestamp(timestamp)
-            .with_label("endpoint", "get_global"),
+            .with_label("endpoint", "get_global")
+            .with_label("data_timestamp", &data_timestamp),
         );
 
         metrics.push(
@@ -66,8 +66,8 @@ impl GlobalResponse {
                 "bitcoin_dominance",
                 self.data.bitcoin_percentage_of_market_cap,
             )
-            .with_timestamp(timestamp)
-            .with_label("endpoint", "get_global"),
+            .with_label("endpoint", "get_global")
+            .with_label("data_timestamp", &data_timestamp),
         );
 
         // USD metrics only
@@ -78,9 +78,9 @@ impl GlobalResponse {
                     "total_market_cap",
                     quote.total_market_cap,
                 )
-                .with_timestamp(timestamp)
                 .with_label("endpoint", "get_global")
-                .with_label("currency", "USD"),
+                .with_label("currency", "USD")
+                .with_label("data_timestamp", &data_timestamp),
             );
 
             metrics.push(
@@ -89,9 +89,9 @@ impl GlobalResponse {
                     "total_volume_24h",
                     quote.total_volume_24h,
                 )
-                .with_timestamp(timestamp)
                 .with_label("endpoint", "get_global")
-                .with_label("currency", "USD"),
+                .with_label("currency", "USD")
+                .with_label("data_timestamp", &data_timestamp),
             );
         }
 
@@ -112,108 +112,43 @@ impl TickerArrayResponse {
     ///
     /// Each metric includes `symbol`, `name`, and `currency` labels.
     pub fn to_metrics(&self) -> Vec<Metric> {
-        let mut metrics = Vec::new();
+        self.data
+            .iter()
+            .filter_map(|ticker| ticker.quotes.get("USD").map(|quote| (ticker, quote)))
+            .flat_map(|(ticker, quote)| {
+                let mut metrics = vec![
+                    create_ticker_metric(ticker, "price", quote.price),
+                    create_ticker_metric(ticker, "market_cap", quote.market_cap),
+                    create_ticker_metric(ticker, "volume_24h", quote.volume_24h),
+                ];
 
-        for ticker in &self.data {
-            let timestamp = ticker.last_updated;
-            let symbol_lower = ticker.symbol.to_lowercase();
-
-            // Only process USD quotes
-            if let Some(quote) = ticker.quotes.get("USD") {
-                // Price metric
-                metrics.push(
-                    Metric::new(
-                        DataSource::AlternativeMe,
-                        format!("{}_price", symbol_lower),
-                        quote.price,
-                    )
-                    .with_timestamp(timestamp)
-                    .with_label("endpoint", "get_ticker")
-                    .with_label("symbol", &ticker.symbol)
-                    .with_label("name", &ticker.name)
-                    .with_label("currency", "USD"),
-                );
-
-                // Market cap metric
-                metrics.push(
-                    Metric::new(
-                        DataSource::AlternativeMe,
-                        format!("{}_market_cap", symbol_lower),
-                        quote.market_cap,
-                    )
-                    .with_timestamp(timestamp)
-                    .with_label("endpoint", "get_ticker")
-                    .with_label("symbol", &ticker.symbol)
-                    .with_label("name", &ticker.name)
-                    .with_label("currency", "USD"),
-                );
-
-                // Volume 24h metric
-                metrics.push(
-                    Metric::new(
-                        DataSource::AlternativeMe,
-                        format!("{}_volume_24h", symbol_lower),
-                        quote.volume_24h,
-                    )
-                    .with_timestamp(timestamp)
-                    .with_label("endpoint", "get_ticker")
-                    .with_label("symbol", &ticker.symbol)
-                    .with_label("name", &ticker.name)
-                    .with_label("currency", "USD"),
-                );
-
-                // Percent change 1h (optional)
                 if let Some(pct) = quote.percent_change_1h {
-                    metrics.push(
-                        Metric::new(
-                            DataSource::AlternativeMe,
-                            format!("{}_percent_change_1h", symbol_lower),
-                            pct,
-                        )
-                        .with_timestamp(timestamp)
-                        .with_label("endpoint", "get_ticker")
-                        .with_label("symbol", &ticker.symbol)
-                        .with_label("name", &ticker.name)
-                        .with_label("currency", "USD"),
-                    );
+                    metrics.push(create_ticker_metric(ticker, "percent_change_1h", pct));
                 }
-
-                // Percent change 24h (optional)
                 if let Some(pct) = quote.percent_change_24h {
-                    metrics.push(
-                        Metric::new(
-                            DataSource::AlternativeMe,
-                            format!("{}_percent_change_24h", symbol_lower),
-                            pct,
-                        )
-                        .with_timestamp(timestamp)
-                        .with_label("endpoint", "get_ticker")
-                        .with_label("symbol", &ticker.symbol)
-                        .with_label("name", &ticker.name)
-                        .with_label("currency", "USD"),
-                    );
+                    metrics.push(create_ticker_metric(ticker, "percent_change_24h", pct));
                 }
-
-                // Percent change 7d (optional)
                 if let Some(pct) = quote.percent_change_7d {
-                    metrics.push(
-                        Metric::new(
-                            DataSource::AlternativeMe,
-                            format!("{}_percent_change_7d", symbol_lower),
-                            pct,
-                        )
-                        .with_timestamp(timestamp)
-                        .with_label("endpoint", "get_ticker")
-                        .with_label("symbol", &ticker.symbol)
-                        .with_label("name", &ticker.name)
-                        .with_label("currency", "USD"),
-                    );
+                    metrics.push(create_ticker_metric(ticker, "percent_change_7d", pct));
                 }
-            }
-        }
 
-        metrics
+                metrics
+            })
+            .collect()
     }
+}
+
+fn create_ticker_metric(ticker: &super::model::Ticker, suffix: &str, value: f64) -> Metric {
+    Metric::new(
+        DataSource::AlternativeMe,
+        format!("{}_{}", ticker.symbol.to_lowercase(), suffix),
+        value,
+    )
+    .with_label("endpoint", "get_ticker")
+    .with_label("symbol", &ticker.symbol)
+    .with_label("name", &ticker.name)
+    .with_label("currency", "USD")
+    .with_label("data_timestamp", ticker.last_updated.to_string())
 }
 
 #[cfg(test)]
@@ -221,7 +156,11 @@ mod tests {
     use super::*;
     use crate::client::alternativeme::model::{FearAndGreedData, Metadata};
 
-    fn make_data(value: &str, timestamp: &str, classification: &str) -> FearAndGreedData {
+    fn create_test_fng_data(
+        value: &str,
+        timestamp: &str,
+        classification: &str,
+    ) -> FearAndGreedData {
         FearAndGreedData {
             value: value.to_string(),
             timestamp: timestamp.to_string(),
@@ -230,7 +169,7 @@ mod tests {
         }
     }
 
-    fn make_response(data: Vec<FearAndGreedData>) -> FearAndGreedResponse {
+    fn create_test_fng_response(data: Vec<FearAndGreedData>) -> FearAndGreedResponse {
         FearAndGreedResponse {
             name: "Fear and Greed Index".to_string(),
             data,
@@ -244,7 +183,8 @@ mod tests {
 
     #[test]
     fn test_to_metric_single_data_point() {
-        let response = make_response(vec![make_data("50", "1703001600", "Neutral")]);
+        let response =
+            create_test_fng_response(vec![create_test_fng_data("50", "1703001600", "Neutral")]);
 
         let metrics = response.to_metric();
 
@@ -253,7 +193,10 @@ mod tests {
         assert_eq!(metric.source, DataSource::AlternativeMe);
         assert_eq!(metric.name, "fear_and_greed_index");
         assert_eq!(metric.value, 50.0);
-        assert_eq!(metric.timestamp, 1703001600);
+        assert_eq!(
+            metric.labels.get("data_timestamp"),
+            Some(&"1703001600".to_string())
+        );
         assert_eq!(
             metric.labels.get("endpoint"),
             Some(&"get_fear_and_greed".to_string())
@@ -266,10 +209,10 @@ mod tests {
 
     #[test]
     fn test_to_metric_multiple_data_points() {
-        let response = make_response(vec![
-            make_data("25", "1703001600", "Extreme Fear"),
-            make_data("40", "1702915200", "Fear"),
-            make_data("75", "1702828800", "Greed"),
+        let response = create_test_fng_response(vec![
+            create_test_fng_data("25", "1703001600", "Extreme Fear"),
+            create_test_fng_data("40", "1702915200", "Fear"),
+            create_test_fng_data("75", "1702828800", "Greed"),
         ]);
 
         let metrics = response.to_metric();
@@ -294,7 +237,7 @@ mod tests {
 
     #[test]
     fn test_to_metric_empty_data() {
-        let response = make_response(vec![]);
+        let response = create_test_fng_response(vec![]);
 
         let metrics = response.to_metric();
 
@@ -303,10 +246,10 @@ mod tests {
 
     #[test]
     fn test_to_metric_skips_invalid_value() {
-        let response = make_response(vec![
-            make_data("50", "1703001600", "Neutral"),
-            make_data("invalid", "1702915200", "Fear"),
-            make_data("75", "1702828800", "Greed"),
+        let response = create_test_fng_response(vec![
+            create_test_fng_data("50", "1703001600", "Neutral"),
+            create_test_fng_data("invalid", "1702915200", "Fear"),
+            create_test_fng_data("75", "1702828800", "Greed"),
         ]);
 
         let metrics = response.to_metric();
@@ -318,27 +261,33 @@ mod tests {
 
     #[test]
     fn test_to_metric_skips_invalid_timestamp() {
-        let response = make_response(vec![
-            make_data("50", "1703001600", "Neutral"),
-            make_data("60", "not_a_number", "Greed"),
-            make_data("75", "1702828800", "Greed"),
+        let response = create_test_fng_response(vec![
+            create_test_fng_data("50", "1703001600", "Neutral"),
+            create_test_fng_data("60", "not_a_number", "Greed"),
+            create_test_fng_data("75", "1702828800", "Greed"),
         ]);
 
         let metrics = response.to_metric();
 
         assert_eq!(metrics.len(), 2);
-        assert_eq!(metrics[0].timestamp, 1703001600);
-        assert_eq!(metrics[1].timestamp, 1702828800);
+        assert_eq!(
+            metrics[0].labels.get("data_timestamp"),
+            Some(&"1703001600".to_string())
+        );
+        assert_eq!(
+            metrics[1].labels.get("data_timestamp"),
+            Some(&"1702828800".to_string())
+        );
     }
 
     #[test]
     fn test_to_metric_all_classifications() {
-        let response = make_response(vec![
-            make_data("10", "1703001600", "Extreme Fear"),
-            make_data("30", "1703001601", "Fear"),
-            make_data("50", "1703001602", "Neutral"),
-            make_data("70", "1703001603", "Greed"),
-            make_data("90", "1703001604", "Extreme Greed"),
+        let response = create_test_fng_response(vec![
+            create_test_fng_data("10", "1703001600", "Extreme Fear"),
+            create_test_fng_data("30", "1703001601", "Fear"),
+            create_test_fng_data("50", "1703001602", "Neutral"),
+            create_test_fng_data("70", "1703001603", "Greed"),
+            create_test_fng_data("90", "1703001604", "Extreme Greed"),
         ]);
 
         let metrics = response.to_metric();

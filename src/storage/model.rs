@@ -40,6 +40,24 @@ impl std::fmt::Display for DataSource {
     }
 }
 
+impl std::str::FromStr for DataSource {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "alternativeme" => Ok(DataSource::AlternativeMe),
+            "coingecko" => Ok(DataSource::CoinGecko),
+            "coinmarketcap" => Ok(DataSource::CoinMarketCap),
+            "polymarket" => Ok(DataSource::Polymarket),
+            s if s.starts_with("custom::") => {
+                let name = s.strip_prefix("custom::").unwrap_or("");
+                Ok(DataSource::Custom(name.to_string()))
+            }
+            _ => anyhow::bail!("Unknown data source: {}", s),
+        }
+    }
+}
+
 // =============================================================================
 // Metric
 // =============================================================================

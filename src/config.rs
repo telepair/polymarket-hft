@@ -8,5 +8,6 @@ mod settings;
 
 pub use job::{IngestionJob, Schedule};
 pub use settings::{
-    AppConfig, DataSourcesConfig, HttpClientConfigSerde, IngestionConfig, ServerConfig,
+    AppConfig, DataSourcesConfig, HttpClientConfigSerde, IngestionConfig, LocalStorageConfigSerde,
+    ServerConfig, StorageBackendType, StorageConfig,
 };

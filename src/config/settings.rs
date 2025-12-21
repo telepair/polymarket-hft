@@ -6,16 +6,37 @@ use std::time::Duration;
 
 use crate::client::http::HttpClientConfig;
 
+// ============================================================================
+// Default Constants
+// ============================================================================
+
+const DEFAULT_DB_PATH: &str = "data/metrics.db";
+const DEFAULT_CACHE_TTL_SECS: u64 = 900; // 15 minutes
+const DEFAULT_CACHE_MAX_CAPACITY: u64 = 100_000;
+const DEFAULT_CLEANUP_INTERVAL_SECS: u64 = 3600; // 1 hour
+const DEFAULT_RETENTION_DAYS: u32 = 365; // 1 year
+const DEFAULT_HOST: &str = "127.0.0.1";
+const DEFAULT_PORT: u16 = 8080;
+
+// ============================================================================
+// Application Configuration
+// ============================================================================
+
 /// Top-level application configuration loaded from YAML file.
 #[derive(Debug, Clone, Deserialize)]
 pub struct AppConfig {
     /// Server configuration.
+    #[serde(default)]
     pub server: ServerConfig,
     /// Data source client configurations.
+    #[serde(default)]
     pub datasources: DataSourcesConfig,
     /// Optional ingestion configuration.
     #[serde(default)]
     pub ingestion: Option<IngestionConfig>,
+    /// Optional storage configuration.
+    #[serde(default)]
+    pub storage: Option<StorageConfig>,
 }
 
 impl AppConfig {
@@ -27,30 +48,103 @@ impl AppConfig {
     }
 }
 
+// ============================================================================
+// Server Configuration
+// ============================================================================
+
 /// Server configuration.
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     /// Host address to bind to.
-    #[serde(default = "default_host")]
+    #[serde(default)]
     pub host: String,
     /// Port to listen on.
-    #[serde(default = "default_port")]
+    #[serde(default)]
     pub port: u16,
-}
-
-fn default_host() -> String {
-    "127.0.0.1".to_string()
-}
-
-fn default_port() -> u16 {
-    8080
 }
 
 impl Default for ServerConfig {
     fn default() -> Self {
         Self {
-            host: default_host(),
-            port: default_port(),
+            host: DEFAULT_HOST.to_string(),
+            port: DEFAULT_PORT,
+        }
+    }
+}
+
+// ============================================================================
+// Storage Configuration
+// ============================================================================
+
+/// Storage backend configuration.
+#[derive(Debug, Clone, Deserialize)]
+pub struct StorageConfig {
+    /// Storage backend type.
+    #[serde(default)]
+    pub backend: StorageBackendType,
+    /// Cleanup interval in seconds (default: 3600 = 1 hour).
+    #[serde(default)]
+    pub cleanup_interval_secs: u64,
+    /// Global data retention period in days (default: 365 = 1 year).
+    #[serde(default)]
+    pub retention_days: u32,
+    /// Local storage configuration (when backend = "local").
+    #[serde(default)]
+    pub local: Option<LocalStorageConfigSerde>,
+}
+
+impl Default for StorageConfig {
+    fn default() -> Self {
+        Self {
+            backend: StorageBackendType::default(),
+            cleanup_interval_secs: DEFAULT_CLEANUP_INTERVAL_SECS,
+            retention_days: DEFAULT_RETENTION_DAYS,
+            local: None,
+        }
+    }
+}
+
+/// Storage backend type.
+#[derive(Debug, Clone, Default, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum StorageBackendType {
+    /// Local SQLite + memory cache.
+    #[default]
+    Local,
+    /// External Redis + TimescaleDB (future).
+    External,
+}
+
+/// Serde-friendly version of LocalStorageConfig.
+#[derive(Debug, Clone, Deserialize)]
+pub struct LocalStorageConfigSerde {
+    /// Path to the SQLite database file.
+    #[serde(default)]
+    pub db_path: PathBuf,
+    /// TTL for cached entries in seconds.
+    #[serde(default)]
+    pub cache_ttl_secs: u64,
+    /// Maximum number of entries in the cache.
+    #[serde(default)]
+    pub cache_max_capacity: u64,
+}
+
+impl Default for LocalStorageConfigSerde {
+    fn default() -> Self {
+        Self {
+            db_path: PathBuf::from(DEFAULT_DB_PATH),
+            cache_ttl_secs: DEFAULT_CACHE_TTL_SECS,
+            cache_max_capacity: DEFAULT_CACHE_MAX_CAPACITY,
+        }
+    }
+}
+
+impl From<LocalStorageConfigSerde> for crate::LocalStorageConfig {
+    fn from(serde: LocalStorageConfigSerde) -> Self {
+        crate::LocalStorageConfig {
+            db_path: serde.db_path,
+            cache_ttl: Duration::from_secs(serde.cache_ttl_secs),
+            cache_max_capacity: serde.cache_max_capacity,
         }
     }
 }
@@ -85,20 +179,22 @@ pub struct HttpClientConfigSerde {
 }
 
 impl From<HttpClientConfigSerde> for HttpClientConfig {
-    fn from(serde: HttpClientConfigSerde) -> Self {
+    fn from(s: HttpClientConfigSerde) -> Self {
         let mut config = HttpClientConfig::default();
-        if let Some(timeout) = serde.timeout_secs {
-            config = config.with_timeout(Duration::from_secs(timeout));
+
+        if let Some(v) = s.timeout_secs {
+            config.timeout = Duration::from_secs(v);
         }
-        if let Some(connect_timeout) = serde.connect_timeout_secs {
-            config = config.with_connect_timeout(Duration::from_secs(connect_timeout));
+        if let Some(v) = s.connect_timeout_secs {
+            config.connect_timeout = Duration::from_secs(v);
         }
-        if let Some(max_retries) = serde.max_retries {
-            config = config.with_max_retries(max_retries);
+        if let Some(v) = s.max_retries {
+            config.max_retries = v;
         }
-        if let Some(user_agent) = serde.user_agent {
-            config = config.with_user_agent(user_agent);
+        if let Some(v) = s.user_agent {
+            config.user_agent = v;
         }
+
         config
     }
 }
