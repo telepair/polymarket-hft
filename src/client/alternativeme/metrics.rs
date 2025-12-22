@@ -1,6 +1,6 @@
 //! Metric conversion for Alternative.me API responses.
 
-use crate::{DataSource, Metric};
+use crate::{DataSource, Metric, MetricUnit};
 
 use super::model::{FearAndGreedResponse, GlobalResponse, TickerArrayResponse};
 
@@ -17,10 +17,15 @@ impl FearAndGreedResponse {
                 let data_timestamp: i64 = data.timestamp.parse().ok()?;
 
                 Some(
-                    Metric::new(DataSource::AlternativeMe, "fear_and_greed_index", value)
-                        .with_label("endpoint", "get_fear_and_greed")
-                        .with_label("classification", &data.value_classification)
-                        .with_label("data_timestamp", data_timestamp.to_string()),
+                    Metric::new(
+                        DataSource::AlternativeMe,
+                        "fear_and_greed_index",
+                        value,
+                        MetricUnit::Index,
+                    )
+                    .with_label("endpoint", "get_fear_and_greed")
+                    .with_label("classification", &data.value_classification)
+                    .with_label("data_timestamp", data_timestamp.to_string()),
                 )
             })
             .collect()
@@ -45,6 +50,7 @@ impl GlobalResponse {
                 DataSource::AlternativeMe,
                 "active_cryptocurrencies",
                 self.data.active_cryptocurrencies.into(),
+                MetricUnit::Count,
             )
             .with_label("endpoint", "get_global")
             .with_label("data_timestamp", &data_timestamp),
@@ -55,6 +61,7 @@ impl GlobalResponse {
                 DataSource::AlternativeMe,
                 "active_markets",
                 self.data.active_markets.into(),
+                MetricUnit::Count,
             )
             .with_label("endpoint", "get_global")
             .with_label("data_timestamp", &data_timestamp),
@@ -65,6 +72,7 @@ impl GlobalResponse {
                 DataSource::AlternativeMe,
                 "bitcoin_dominance",
                 self.data.bitcoin_percentage_of_market_cap,
+                MetricUnit::Percent,
             )
             .with_label("endpoint", "get_global")
             .with_label("data_timestamp", &data_timestamp),
@@ -77,6 +85,7 @@ impl GlobalResponse {
                     DataSource::AlternativeMe,
                     "total_market_cap",
                     quote.total_market_cap,
+                    MetricUnit::USD,
                 )
                 .with_label("endpoint", "get_global")
                 .with_label("currency", "USD")
@@ -88,6 +97,7 @@ impl GlobalResponse {
                     DataSource::AlternativeMe,
                     "total_volume_24h",
                     quote.total_volume_24h,
+                    MetricUnit::USD,
                 )
                 .with_label("endpoint", "get_global")
                 .with_label("currency", "USD")
@@ -117,19 +127,34 @@ impl TickerArrayResponse {
             .filter_map(|ticker| ticker.quotes.get("USD").map(|quote| (ticker, quote)))
             .flat_map(|(ticker, quote)| {
                 let mut metrics = vec![
-                    create_ticker_metric(ticker, "price", quote.price),
-                    create_ticker_metric(ticker, "market_cap", quote.market_cap),
-                    create_ticker_metric(ticker, "volume_24h", quote.volume_24h),
+                    create_ticker_metric(ticker, "price", quote.price, MetricUnit::USD),
+                    create_ticker_metric(ticker, "market_cap", quote.market_cap, MetricUnit::USD),
+                    create_ticker_metric(ticker, "volume_24h", quote.volume_24h, MetricUnit::USD),
                 ];
 
                 if let Some(pct) = quote.percent_change_1h {
-                    metrics.push(create_ticker_metric(ticker, "percent_change_1h", pct));
+                    metrics.push(create_ticker_metric(
+                        ticker,
+                        "percent_change_1h",
+                        pct,
+                        MetricUnit::Percent,
+                    ));
                 }
                 if let Some(pct) = quote.percent_change_24h {
-                    metrics.push(create_ticker_metric(ticker, "percent_change_24h", pct));
+                    metrics.push(create_ticker_metric(
+                        ticker,
+                        "percent_change_24h",
+                        pct,
+                        MetricUnit::Percent,
+                    ));
                 }
                 if let Some(pct) = quote.percent_change_7d {
-                    metrics.push(create_ticker_metric(ticker, "percent_change_7d", pct));
+                    metrics.push(create_ticker_metric(
+                        ticker,
+                        "percent_change_7d",
+                        pct,
+                        MetricUnit::Percent,
+                    ));
                 }
 
                 metrics
@@ -138,11 +163,17 @@ impl TickerArrayResponse {
     }
 }
 
-fn create_ticker_metric(ticker: &super::model::Ticker, suffix: &str, value: f64) -> Metric {
+fn create_ticker_metric(
+    ticker: &super::model::Ticker,
+    suffix: &str,
+    value: f64,
+    unit: MetricUnit,
+) -> Metric {
     Metric::new(
         DataSource::AlternativeMe,
         format!("{}_{}", ticker.symbol.to_lowercase(), suffix),
         value,
+        unit,
     )
     .with_label("endpoint", "get_ticker")
     .with_label("symbol", &ticker.symbol)

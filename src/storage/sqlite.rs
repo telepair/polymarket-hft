@@ -2,7 +2,7 @@
 //!
 //! Uses `sqlx` for async database operations with WAL mode for better concurrency.
 
-use crate::{DataSource, Metric};
+use crate::{DataSource, Metric, MetricUnit};
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions};
 use std::path::Path;
 use std::str::FromStr;
@@ -68,6 +68,7 @@ impl SqliteStorage {
                 name TEXT NOT NULL,
                 value REAL NOT NULL,
                 timestamp INTEGER NOT NULL,
+                unit TEXT,
                 labels TEXT,
                 created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
             )
@@ -119,20 +120,21 @@ impl SqliteStorage {
                 .iter()
                 .enumerate()
                 .map(|(i, _)| {
-                    let base = i * 5;
+                    let base = i * 6;
                     format!(
-                        "(${}, ${}, ${}, ${}, ${})",
+                        "(${}, ${}, ${}, ${}, ${}, ${})",
                         base + 1,
                         base + 2,
                         base + 3,
                         base + 4,
-                        base + 5
+                        base + 5,
+                        base + 6
                     )
                 })
                 .collect();
 
             let sql = format!(
-                "INSERT INTO metrics (source, name, value, timestamp, labels) VALUES {}",
+                "INSERT INTO metrics (source, name, value, timestamp, unit, labels) VALUES {}",
                 placeholders.join(", ")
             );
 
@@ -150,6 +152,7 @@ impl SqliteStorage {
                     .bind(&metric.name)
                     .bind(metric.value)
                     .bind(metric.timestamp)
+                    .bind(metric.unit.to_string())
                     .bind(labels);
             }
 
@@ -164,7 +167,7 @@ impl SqliteStorage {
     pub async fn get_latest(&self, source: &str, name: &str) -> anyhow::Result<Option<Metric>> {
         let row: Option<MetricRow> = sqlx::query_as(
             r#"
-            SELECT source, name, value, timestamp, labels
+            SELECT source, name, value, timestamp, unit, labels
             FROM metrics
             WHERE source = $1 AND name = $2
             ORDER BY timestamp DESC
@@ -190,7 +193,7 @@ impl SqliteStorage {
     ) -> anyhow::Result<Vec<Metric>> {
         // Build dynamic SQL query
         let mut sql = String::from(
-            "SELECT source, name, value, timestamp, labels FROM metrics WHERE timestamp >= ? AND timestamp <= ?",
+            "SELECT source, name, value, timestamp, unit, labels FROM metrics WHERE timestamp >= ? AND timestamp <= ?",
         );
 
         if source.is_some() {
@@ -233,6 +236,22 @@ impl SqliteStorage {
         sqlx::query("SELECT 1").execute(&self.pool).await?;
         Ok(())
     }
+
+    /// Get available metrics (source, name) pairs.
+    pub async fn get_available_metrics(&self) -> anyhow::Result<Vec<(String, String)>> {
+        let rows = sqlx::query("SELECT DISTINCT source, name FROM metrics ORDER BY source, name")
+            .fetch_all(&self.pool)
+            .await?;
+
+        let mut metrics = Vec::new();
+        for row in rows {
+            use sqlx::Row;
+            let source: String = row.try_get("source")?;
+            let name: String = row.try_get("name")?;
+            metrics.push((source, name));
+        }
+        Ok(metrics)
+    }
 }
 
 /// Internal row structure for SQLite query results.
@@ -244,6 +263,7 @@ struct MetricRow {
     name: String,
     value: f64,
     timestamp: i64,
+    unit: Option<String>,
     labels: Option<String>,
 }
 
@@ -252,6 +272,12 @@ impl TryFrom<MetricRow> for Metric {
 
     fn try_from(row: MetricRow) -> Result<Self, Self::Error> {
         let source: DataSource = row.source.parse()?;
+        let unit: MetricUnit = row
+            .unit
+            .as_deref()
+            .map(|s| s.parse())
+            .transpose()?
+            .unwrap_or_default();
         let labels = match row.labels {
             Some(json) => serde_json::from_str(&json)?,
             None => std::collections::HashMap::new(),
@@ -262,6 +288,7 @@ impl TryFrom<MetricRow> for Metric {
             name: row.name,
             value: row.value,
             timestamp: row.timestamp,
+            unit,
             labels,
         })
     }
@@ -274,7 +301,8 @@ mod tests {
     #[tokio::test]
     async fn test_sqlite_storage_crud() {
         let storage = SqliteStorage::open_in_memory().await.unwrap();
-        let metric = Metric::new(DataSource::AlternativeMe, "test", 42.0).with_timestamp(1000);
+        let metric = Metric::new(DataSource::AlternativeMe, "test", 42.0, MetricUnit::Index)
+            .with_timestamp(1000);
 
         storage
             .insert_batch(std::slice::from_ref(&metric))
@@ -290,9 +318,12 @@ mod tests {
     async fn test_sqlite_storage_query_range() {
         let storage = SqliteStorage::open_in_memory().await.unwrap();
         let metrics = vec![
-            Metric::new(DataSource::AlternativeMe, "test", 1.0).with_timestamp(100),
-            Metric::new(DataSource::AlternativeMe, "test", 2.0).with_timestamp(200),
-            Metric::new(DataSource::AlternativeMe, "test", 3.0).with_timestamp(300),
+            Metric::new(DataSource::AlternativeMe, "test", 1.0, MetricUnit::Index)
+                .with_timestamp(100),
+            Metric::new(DataSource::AlternativeMe, "test", 2.0, MetricUnit::Index)
+                .with_timestamp(200),
+            Metric::new(DataSource::AlternativeMe, "test", 3.0, MetricUnit::Index)
+                .with_timestamp(300),
         ];
 
         storage.insert_batch(&metrics).await.unwrap();
@@ -309,8 +340,10 @@ mod tests {
     async fn test_sqlite_storage_cleanup() {
         let storage = SqliteStorage::open_in_memory().await.unwrap();
         let metrics = vec![
-            Metric::new(DataSource::AlternativeMe, "old", 1.0).with_timestamp(100),
-            Metric::new(DataSource::AlternativeMe, "new", 2.0).with_timestamp(1000),
+            Metric::new(DataSource::AlternativeMe, "old", 1.0, MetricUnit::Index)
+                .with_timestamp(100),
+            Metric::new(DataSource::AlternativeMe, "new", 2.0, MetricUnit::Index)
+                .with_timestamp(1000),
         ];
 
         storage.insert_batch(&metrics).await.unwrap();

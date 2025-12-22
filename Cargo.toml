@@ -48,6 +48,12 @@ tokio-cron-scheduler = "0.15"
 sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite"] }
 moka = { version = "0.12", features = ["future"] }
 
+# Web server
+axum = "0.8"
+askama = "0.14"
+askama_web = { version = "0.14", features = ["axum-0.8"] }
+tower-http = { version = "0.6", features = ["fs", "trace"] }
+
 
 
 [[bin]]

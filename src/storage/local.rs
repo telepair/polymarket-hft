@@ -9,6 +9,7 @@ use super::{BoxFuture, StorageBackend};
 use crate::Metric;
 use std::path::PathBuf;
 use std::sync::Arc;
+
 use std::time::Duration;
 
 /// Combined local storage with memory cache and SQLite persistence.
@@ -28,7 +29,6 @@ impl LocalStorage {
             config.cache_max_capacity,
         ));
         let sqlite = Arc::new(SqliteStorage::open(&config.db_path).await?);
-
         Ok(Self { cache, sqlite })
     }
 
@@ -39,7 +39,6 @@ impl LocalStorage {
             config.cache_max_capacity,
         ));
         let sqlite = Arc::new(SqliteStorage::open_in_memory().await?);
-
         Ok(Self { cache, sqlite })
     }
 
@@ -114,6 +113,10 @@ impl StorageBackend for LocalStorage {
     fn cleanup_before(&self, cutoff_timestamp: i64) -> BoxFuture<'_, anyhow::Result<u64>> {
         Box::pin(async move { self.sqlite.cleanup_before(cutoff_timestamp).await })
     }
+
+    fn get_available_metrics(&self) -> BoxFuture<'_, anyhow::Result<Vec<(String, String)>>> {
+        Box::pin(async move { self.sqlite.get_available_metrics().await })
+    }
 }
 
 /// Configuration for LocalStorage.
@@ -140,7 +143,7 @@ impl Default for LocalStorageConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::DataSource;
+    use crate::{DataSource, MetricUnit};
 
     #[tokio::test]
     async fn test_local_storage_write_through() {
@@ -151,7 +154,7 @@ mod tests {
         };
         let storage = LocalStorage::new_in_memory(config).await.unwrap();
 
-        let metric = Metric::new(DataSource::AlternativeMe, "test", 42.0);
+        let metric = Metric::new(DataSource::AlternativeMe, "test", 42.0, MetricUnit::Index);
         storage.store(&[metric]).await.unwrap();
 
         // Verify cache hit
@@ -169,7 +172,7 @@ mod tests {
         };
         let storage = LocalStorage::new_in_memory(config).await.unwrap();
 
-        let metric = Metric::new(DataSource::AlternativeMe, "test", 42.0);
+        let metric = Metric::new(DataSource::AlternativeMe, "test", 42.0, MetricUnit::Index);
         storage.store(&[metric]).await.unwrap();
 
         // Wait for cache expiration

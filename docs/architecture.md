@@ -86,6 +86,19 @@ This document describes the architecture for the polymarket-hft trading system.
 │  │   Order Executor  │ │   Notification    │ │   Audit Logger    │          │
 │  └───────────────────┘ └───────────────────┘ └───────────────────┘          │
 └─────────────────────────────────────────────────────────────────────────────┘
+                                          │
+                                          ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    Web Dashboard ✅ IMPLEMENTED                             │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │              Axum Web Server + htmx + TailwindCSS                   │    │
+│  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐     │    │
+│  │  │  Dashboard UI   │  │  htmx Partials  │  │   JSON API      │     │    │
+│  │  │  (askama)       │  │  (auto-refresh) │  │  /api/metrics   │     │    │
+│  │  └─────────────────┘  └─────────────────┘  └─────────────────┘     │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Components
@@ -186,6 +199,33 @@ Distributed storage for multi-instance deployments.
 | ----------- | ----------- | -------------------------- |
 | Hot Cache   | Redis       | Real-time state, Pub/Sub   |
 | Cold Store  | TimescaleDB | Time-series persistence    |
+
+### Web Dashboard ✅ IMPLEMENTED
+
+Real-time metrics visualization using modern web technologies.
+
+| Component      | Technology    | Purpose                              |
+| -------------- | ------------- | ------------------------------------ |
+| Web Server     | Axum 0.8      | HTTP server with routing             |
+| Templates      | askama        | Type-safe HTML templates             |
+| Reactivity     | htmx          | Partial page updates without JS      |
+| Styling        | TailwindCSS   | Dark theme with glassmorphism        |
+
+**Features:**
+
+- Real-time metric cards with auto-refresh (10s interval)
+- Dark mode with gradient backgrounds and glass effects
+- JSON API endpoint (`/api/metrics/latest`)
+- htmx-powered partial updates (`/partials/metrics`)
+- Responsive grid layout
+
+**Routes:**
+
+| Endpoint            | Method | Description                    |
+| ------------------- | ------ | ------------------------------ |
+| `/`                 | GET    | Dashboard HTML page            |
+| `/partials/metrics` | GET    | Metrics HTML partial (htmx)    |
+| `/api/metrics/latest` | GET  | JSON API for recent metrics    |
 
 ### Policy Engine 📋 PLANNED
 
@@ -308,11 +348,19 @@ src/
 │   ├── cache.rs         #    In-memory cache with TTL (moka)
 │   ├── model.rs         #    Metric, DataSource definitions
 │   └── archiver.rs      #    Legacy archiver trait (deprecated)
+├── web/                 # ✅ Web dashboard
+│   ├── handlers.rs      #    Axum HTTP handlers
+│   └── templates.rs     #    askama template definitions
 ├── engine/              # 📋 HFT engine (future)
 │   ├── policy/          #    Policy engine (user-defined rules)
 │   └── executor.rs      #    Action executor
 └── cli/                 # ✅ CLI commands
-    └── serve.rs         #    Data ingestion server
+    └── serve.rs         #    Data ingestion server + web dashboard
+
+templates/               # askama HTML templates
+├── dashboard.html       # Main dashboard page (htmx + TailwindCSS)
+└── partials/
+    └── metrics.html     # Metrics card grid (htmx partial)
 ```
 
 ## Design Decisions
@@ -331,8 +379,9 @@ src/
 | ---------------------- | --------------------------------------- | -------------- |
 | 1. Client Layer        | Polymarket, CMC, AlternativeMe clients  | ✅ IMPLEMENTED |
 | 2. Storage Layer       | LocalStorage (SQLite + moka)            | ✅ IMPLEMENTED |
-| 3. Ingestor Manager    | Job scheduling, interval/cron support   | 🚧 IN PROGRESS |
-| 4. External Storage    | Redis + TimescaleDB backend             | 📋 PLANNED     |
-| 5. Policy Engine       | state, policy DSL, evaluator            | 📋 PLANNED     |
-| 6. Execution Layer     | executor, notifications                 | 📋 PLANNED     |
-| 7. Operations          | Metrics, tracing, health checks         | 📋 PLANNED     |
+| 3. Web Dashboard       | Axum + htmx + TailwindCSS + askama      | ✅ IMPLEMENTED |
+| 4. Ingestor Manager    | Job scheduling, interval/cron support   | 🚧 IN PROGRESS |
+| 5. External Storage    | Redis + TimescaleDB backend             | 📋 PLANNED     |
+| 6. Policy Engine       | state, policy DSL, evaluator            | 📋 PLANNED     |
+| 7. Execution Layer     | executor, notifications                 | 📋 PLANNED     |
+| 8. Operations          | Metrics, tracing, health checks         | 📋 PLANNED     |

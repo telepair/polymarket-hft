@@ -59,6 +59,60 @@ impl std::str::FromStr for DataSource {
 }
 
 // =============================================================================
+// MetricUnit
+// =============================================================================
+
+/// Unit of measurement for metrics.
+///
+/// This enum represents common units used in metric measurements.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum MetricUnit {
+    /// Index value (e.g., Fear & Greed Index).
+    #[default]
+    Index,
+    /// Percentage value.
+    Percent,
+    /// US Dollar.
+    USD,
+    /// Count of items.
+    Count,
+    /// Ratio value.
+    Ratio,
+    /// Basis points.
+    Bps,
+}
+
+impl std::fmt::Display for MetricUnit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MetricUnit::Index => write!(f, "index"),
+            MetricUnit::Percent => write!(f, "percent"),
+            MetricUnit::USD => write!(f, "USD"),
+            MetricUnit::Count => write!(f, "count"),
+            MetricUnit::Ratio => write!(f, "ratio"),
+            MetricUnit::Bps => write!(f, "bps"),
+        }
+    }
+}
+
+impl std::str::FromStr for MetricUnit {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "index" => Ok(MetricUnit::Index),
+            "percent" | "%" => Ok(MetricUnit::Percent),
+            "usd" | "$" => Ok(MetricUnit::USD),
+            "count" => Ok(MetricUnit::Count),
+            "ratio" => Ok(MetricUnit::Ratio),
+            "bps" => Ok(MetricUnit::Bps),
+            _ => anyhow::bail!("Unknown metric unit: {}", s),
+        }
+    }
+}
+
+// =============================================================================
 // Metric
 // =============================================================================
 
@@ -80,6 +134,9 @@ pub struct Metric {
     /// Unix timestamp when the metric was collected.
     pub timestamp: i64,
 
+    /// Unit of the metric.
+    pub unit: MetricUnit,
+
     /// Optional labels for metric categorization and filtering.
     #[serde(default)]
     pub labels: std::collections::HashMap<String, String>,
@@ -88,7 +145,7 @@ pub struct Metric {
 impl Metric {
     /// Creates a new metric with the given parameters.
     /// The timestamp defaults to the current time (now).
-    pub fn new(source: DataSource, name: impl Into<String>, value: f64) -> Self {
+    pub fn new(source: DataSource, name: impl Into<String>, value: f64, unit: MetricUnit) -> Self {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -97,6 +154,7 @@ impl Metric {
             name: name.into(),
             value,
             timestamp,
+            unit,
             labels: std::collections::HashMap::new(),
             source,
         }
@@ -126,18 +184,24 @@ mod tests {
 
     #[test]
     fn test_metric_new() {
-        let metric =
-            Metric::new(DataSource::AlternativeMe, "test_metric", 42.0).with_timestamp(1234567890);
+        let metric = Metric::new(
+            DataSource::AlternativeMe,
+            "test_metric",
+            42.0,
+            MetricUnit::Index,
+        )
+        .with_timestamp(1234567890);
         assert_eq!(metric.name, "test_metric");
         assert_eq!(metric.value, 42.0);
         assert_eq!(metric.timestamp, 1234567890);
         assert_eq!(metric.source, DataSource::AlternativeMe);
+        assert_eq!(metric.unit, MetricUnit::Index);
         assert!(metric.labels.is_empty());
     }
 
     #[test]
     fn test_metric_with_label() {
-        let metric = Metric::new(DataSource::Polymarket, "test_metric", 42.0)
+        let metric = Metric::new(DataSource::Polymarket, "test_metric", 42.0, MetricUnit::USD)
             .with_timestamp(1234567890)
             .with_label("env", "production")
             .with_label("region", "us-west");
@@ -159,14 +223,39 @@ mod tests {
     }
 
     #[test]
+    fn test_metric_unit_display() {
+        assert_eq!(MetricUnit::Index.to_string(), "index");
+        assert_eq!(MetricUnit::Percent.to_string(), "percent");
+        assert_eq!(MetricUnit::USD.to_string(), "USD");
+        assert_eq!(MetricUnit::Count.to_string(), "count");
+    }
+
+    #[test]
+    fn test_metric_unit_from_str() {
+        assert_eq!("index".parse::<MetricUnit>().unwrap(), MetricUnit::Index);
+        assert_eq!(
+            "percent".parse::<MetricUnit>().unwrap(),
+            MetricUnit::Percent
+        );
+        assert_eq!("USD".parse::<MetricUnit>().unwrap(), MetricUnit::USD);
+        assert_eq!("%".parse::<MetricUnit>().unwrap(), MetricUnit::Percent);
+    }
+
+    #[test]
     fn test_metric_state_key() {
-        let metric = Metric::new(DataSource::AlternativeMe, "fear_and_greed_index", 75.0);
+        let metric = Metric::new(
+            DataSource::AlternativeMe,
+            "fear_and_greed_index",
+            75.0,
+            MetricUnit::Index,
+        );
         assert_eq!(metric.state_key(), "alternativeme::fear_and_greed_index");
 
         let metric = Metric::new(
             DataSource::Custom("binance".to_string()),
             "btc_price",
             100000.0,
+            MetricUnit::USD,
         );
         assert_eq!(metric.state_key(), "custom::binance::btc_price");
     }

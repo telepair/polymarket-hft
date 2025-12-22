@@ -1,0 +1,84 @@
+{% if metrics.is_empty() %}
+<div class="glass rounded-xl p-12 text-center">
+    <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-800 flex items-center justify-center">
+        <svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+        </svg>
+    </div>
+    <h3 class="text-lg font-medium text-slate-300 mb-2">No Metrics Found</h3>
+    <p class="text-slate-500">
+        {% if !filter_params.source.is_empty() || !filter_params.name.is_empty() %}
+        Try adjusting your filters or wait for data to be collected.
+        {% else %}
+        Waiting for data to be collected...
+        {% endif %}
+    </p>
+</div>
+{% else %}
+<div class="glass rounded-xl overflow-hidden">
+    <!-- Results count -->
+    <div class="px-4 py-3 border-b border-slate-800/50 flex items-center justify-between">
+        <span class="text-sm text-slate-400">
+            Showing <span class="font-medium text-slate-200">{{ metrics.len() }}</span> metrics
+            {% if !filter_params.source.is_empty() %}
+            from <span class="font-medium text-primary-400">{{ filter_params.source }}</span>
+            {% endif %}
+            {% if !filter_params.name.is_empty() %}
+            matching "<span class="font-medium text-primary-400">{{ filter_params.name }}</span>"
+            {% endif %}
+        </span>
+        <span class="text-xs text-slate-500">{% if filter_params.time_range.is_empty() %}1h{% else %}{{ filter_params.time_range }}{% endif %}</span>
+    </div>
+    
+    <!-- Metrics Table -->
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-slate-800/50">
+                <tr class="text-left text-slate-400 text-xs uppercase tracking-wider">
+                    <th class="px-4 py-3 font-medium">Timestamp</th>
+                    <th class="px-4 py-3 font-medium">Source</th>
+                    <th class="px-4 py-3 font-medium">Name</th>
+                    <th class="px-4 py-3 font-medium text-right">Value</th>
+                    <th class="px-4 py-3 font-medium">Labels</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/50">
+                {% for metric in metrics %}
+                <tr class="hover:bg-slate-800/30 transition-colors">
+                    <td class="px-4 py-3 text-slate-400 whitespace-nowrap font-mono text-xs">
+                        {{ metric.timestamp }}
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-primary-500/20 text-primary-300 uppercase">
+                            {{ metric.source }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-slate-200 font-medium">
+                        {{ metric.name }}
+                    </td>
+                    <td class="px-4 py-3 text-right font-mono">
+                        <span class="text-emerald-400">
+                             {{ metric.value }}
+                             <span class="text-slate-500 text-xs ml-1">{{ metric.unit }}</span>
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if !metric.labels.is_empty() %}
+                        <div class="flex flex-wrap gap-1 max-w-xs">
+                            {% for (key, value) in metric.labels %}
+                            <span class="px-1.5 py-0.5 text-xs rounded bg-slate-700 text-slate-400 truncate" title="{{ key }}: {{ value }}">
+                                {{ key }}={{ value }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <span class="text-slate-600">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}

@@ -14,6 +14,7 @@ const DEFAULT_DB_PATH: &str = "data/metrics.db";
 const DEFAULT_CACHE_TTL_SECS: u64 = 900; // 15 minutes
 const DEFAULT_CACHE_MAX_CAPACITY: u64 = 100_000;
 const DEFAULT_CLEANUP_INTERVAL_SECS: u64 = 3600; // 1 hour
+const DEFAULT_METADATA_REFRESH_INTERVAL_SECS: u64 = 300; // 5 minutes
 const DEFAULT_RETENTION_DAYS: u32 = 365; // 1 year
 const DEFAULT_HOST: &str = "127.0.0.1";
 const DEFAULT_PORT: u16 = 8080;
@@ -85,6 +86,9 @@ pub struct StorageConfig {
     /// Cleanup interval in seconds (default: 3600 = 1 hour).
     #[serde(default)]
     pub cleanup_interval_secs: u64,
+    /// Metadata refresh interval in seconds (default: 300 = 5 minutes).
+    #[serde(default)]
+    pub metadata_refresh_interval_secs: u64,
     /// Global data retention period in days (default: 365 = 1 year).
     #[serde(default)]
     pub retention_days: u32,
@@ -98,6 +102,7 @@ impl Default for StorageConfig {
         Self {
             backend: StorageBackendType::default(),
             cleanup_interval_secs: DEFAULT_CLEANUP_INTERVAL_SECS,
+            metadata_refresh_interval_secs: DEFAULT_METADATA_REFRESH_INTERVAL_SECS,
             retention_days: DEFAULT_RETENTION_DAYS,
             local: None,
         }

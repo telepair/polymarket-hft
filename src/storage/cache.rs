@@ -73,12 +73,12 @@ pub struct CacheStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::DataSource;
+    use crate::{DataSource, MetricUnit};
 
     #[tokio::test]
     async fn test_cache_put_and_get() {
         let cache = MemoryCache::new(Duration::from_secs(60), 100);
-        let metric = Metric::new(DataSource::AlternativeMe, "test", 42.0);
+        let metric = Metric::new(DataSource::AlternativeMe, "test", 42.0, MetricUnit::Index);
 
         cache.put(&metric).await;
 
@@ -99,8 +99,8 @@ mod tests {
     async fn test_cache_batch_insert() {
         let cache = MemoryCache::new(Duration::from_secs(60), 100);
         let metrics = vec![
-            Metric::new(DataSource::AlternativeMe, "metric1", 1.0),
-            Metric::new(DataSource::AlternativeMe, "metric2", 2.0),
+            Metric::new(DataSource::AlternativeMe, "metric1", 1.0, MetricUnit::Index),
+            Metric::new(DataSource::AlternativeMe, "metric2", 2.0, MetricUnit::Index),
         ];
 
         cache.put_batch(&metrics).await;
@@ -112,7 +112,7 @@ mod tests {
     #[tokio::test]
     async fn test_cache_stats() {
         let cache = MemoryCache::new(Duration::from_secs(60), 100);
-        let metric = Metric::new(DataSource::AlternativeMe, "test", 42.0);
+        let metric = Metric::new(DataSource::AlternativeMe, "test", 42.0, MetricUnit::Index);
 
         cache.put(&metric).await;
 

@@ -55,6 +55,9 @@ pub trait StorageBackend: Send + Sync {
     ///
     /// Returns the number of deleted rows.
     fn cleanup_before(&self, cutoff_timestamp: i64) -> BoxFuture<'_, anyhow::Result<u64>>;
+
+    /// Get available metrics (source, name) pairs.
+    fn get_available_metrics(&self) -> BoxFuture<'_, anyhow::Result<Vec<(String, String)>>>;
 }
 
 // ============================================================================
@@ -62,4 +65,4 @@ pub trait StorageBackend: Send + Sync {
 // ============================================================================
 
 pub use local::{LocalStorage, LocalStorageConfig};
-pub use model::{DataSource, Metric};
+pub use model::{DataSource, Metric, MetricUnit};
