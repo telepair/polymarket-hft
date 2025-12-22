@@ -5,9 +5,11 @@ use std::sync::Arc;
 use axum::{
     Router,
     extract::{Query, State},
+    http::header,
     response::IntoResponse,
     routing::get,
 };
+use chrono::{TimeZone, Utc};
 use serde::Deserialize;
 
 use crate::storage::StorageBackend;
@@ -15,9 +17,39 @@ use tokio::sync::RwLock;
 use tracing;
 
 use super::templates::{
-    DashboardTemplate, FilterParams, LatestMetricView, MetricView, MetricsPartialTemplate,
-    StatusTemplate,
+    DashboardTemplate, EventView, EventsTemplate, FilterParams, LatestMetricView, MetricView,
+    MetricsPartialTemplate, MetricsTemplate, SourceStat, StatusTemplate,
 };
+
+// =============================================================================
+// Constants
+// =============================================================================
+
+/// Default limit for events queries.
+const DEFAULT_EVENTS_LIMIT: usize = 100;
+
+/// Format a unix timestamp to UTC string with explicit UTC suffix.
+fn format_utc_time(timestamp: i64, fmt: &str) -> String {
+    Utc.timestamp_opt(timestamp, 0)
+        .single()
+        .map(|dt| format!("{} UTC", dt.format(fmt)))
+        .unwrap_or_else(|| timestamp.to_string())
+}
+
+// =============================================================================
+// Static Assets (embedded at compile time for offline use)
+// =============================================================================
+
+const HTMX_JS: &str = include_str!("../../templates/htmx.min.js");
+const STYLES_CSS: &str = include_str!("../../templates/styles.css");
+
+async fn serve_htmx() -> impl IntoResponse {
+    ([(header::CONTENT_TYPE, "application/javascript")], HTMX_JS)
+}
+
+async fn serve_styles() -> impl IntoResponse {
+    ([(header::CONTENT_TYPE, "text/css")], STYLES_CSS)
+}
 
 // =============================================================================
 // Router
@@ -28,21 +60,30 @@ use super::templates::{
 pub struct AppState {
     pub storage: Arc<dyn StorageBackend>,
     pub metadata_cache: Arc<RwLock<Vec<(String, String)>>>,
+    pub instance_id: String,
 }
 
 /// Create the Axum router with all routes.
 pub fn create_router(
     storage: Arc<dyn StorageBackend>,
     metadata_cache: Arc<RwLock<Vec<(String, String)>>>,
+    instance_id: String,
 ) -> Router {
     let state = AppState {
         storage,
         metadata_cache,
+        instance_id,
     };
 
     Router::new()
+        // Static assets
+        .route("/static/htmx.min.js", get(serve_htmx))
+        .route("/static/styles.css", get(serve_styles))
+        // Pages
         .route("/", get(index))
+        .route("/metrics", get(metrics_page))
         .route("/status", get(status))
+        .route("/events", get(events))
         .route("/partials/metrics", get(metrics_partial))
         .route("/api/metrics/latest", get(api_metrics_latest))
         .with_state(state)
@@ -98,8 +139,107 @@ impl MetricsQuery {
 // Handlers
 // =============================================================================
 
-/// Index page - renders the dashboard with filter form.
-async fn index(
+/// Index page - renders the dashboard with statistics overview.
+async fn index(State(state): State<AppState>) -> impl IntoResponse {
+    let mut available_metrics = state.metadata_cache.read().await.clone();
+
+    // Fallback: If cache is empty, try to fetch from storage
+    if available_metrics.is_empty() {
+        tracing::debug!("Metadata cache empty, fetching from storage");
+        if let Ok(metrics) = state.storage.get_available_metrics().await
+            && !metrics.is_empty()
+        {
+            let mut cache = state.metadata_cache.write().await;
+            *cache = metrics.clone();
+            available_metrics = metrics;
+            tracing::debug!(
+                count = available_metrics.len(),
+                "Metadata cache updated from storage"
+            );
+        }
+    }
+
+    // Calculate statistics
+    let total_status = available_metrics.len();
+
+    // Get events count
+    let total_events = state
+        .storage
+        .get_events(None, Some(1000))
+        .await
+        .map(|e| e.len())
+        .unwrap_or(0);
+
+    // Calculate source stats: group metrics by source
+    let now = chrono::Utc::now().timestamp();
+    let start_24h = now - 24 * 3600;
+
+    let mut source_map: std::collections::HashMap<
+        String,
+        (usize, std::collections::HashSet<String>, i64),
+    > = std::collections::HashMap::new();
+
+    for (source, name) in &available_metrics {
+        let entry =
+            source_map
+                .entry(source.clone())
+                .or_insert((0, std::collections::HashSet::new(), 0));
+        entry.1.insert(name.clone());
+
+        // Get latest timestamp for this source
+        if let Ok(Some(metric)) = state.storage.get_latest(source, name).await
+            && metric.timestamp > entry.2
+        {
+            entry.2 = metric.timestamp;
+        }
+    }
+
+    // Count metrics in last 24h for each source
+    let all_metrics = state
+        .storage
+        .query_range(None, None, start_24h, now, Some(10000))
+        .await
+        .unwrap_or_default();
+
+    let total_metrics = all_metrics.len();
+
+    for metric in &all_metrics {
+        let source = metric.source.to_string();
+        if let Some(entry) = source_map.get_mut(&source) {
+            entry.0 += 1;
+        }
+    }
+
+    let mut source_stats: Vec<SourceStat> = source_map
+        .into_iter()
+        .map(|(source, (metric_count, names, last_ts))| {
+            let last_updated = if last_ts > 0 {
+                format_utc_time(last_ts, "%Y-%m-%d %H:%M")
+            } else {
+                "-".to_string()
+            };
+            SourceStat {
+                source,
+                metric_count,
+                name_count: names.len(),
+                last_updated,
+            }
+        })
+        .collect();
+
+    source_stats.sort_by(|a, b| a.source.cmp(&b.source));
+
+    DashboardTemplate {
+        title: "Dashboard".to_string(),
+        total_metrics,
+        total_status,
+        total_events,
+        source_stats,
+    }
+}
+
+/// Metrics page - renders the metrics explorer with filter form.
+async fn metrics_page(
     State(state): State<AppState>,
     Query(query): Query<MetricsQuery>,
 ) -> impl IntoResponse {
@@ -131,8 +271,8 @@ async fn index(
     available_names.sort();
     available_names.dedup();
 
-    DashboardTemplate {
-        title: "Metrics Dashboard".to_string(),
+    MetricsTemplate {
+        title: "Metrics Explorer".to_string(),
         filter_params: FilterParams {
             source: query.source.clone().unwrap_or_default(),
             name: query.name.clone().unwrap_or_default(),
@@ -174,6 +314,58 @@ async fn status(State(state): State<AppState>) -> impl IntoResponse {
         title: "System Status".to_string(),
         metrics,
         last_updated: now.format("%Y-%m-%d %H:%M:%S UTC").to_string(),
+    }
+}
+
+/// Query parameters for events page.
+#[derive(Debug, Deserialize, Default)]
+pub struct EventsQuery {
+    /// Filter by instance ID.
+    #[serde(default)]
+    pub instance_id: Option<String>,
+
+    /// Maximum number of events.
+    #[serde(default = "default_events_limit")]
+    pub limit: usize,
+}
+
+fn default_events_limit() -> usize {
+    DEFAULT_EVENTS_LIMIT
+}
+
+/// Events page - shows system events log.
+async fn events(
+    State(state): State<AppState>,
+    Query(query): Query<EventsQuery>,
+) -> impl IntoResponse {
+    let filter_instance = query.instance_id.as_deref().filter(|s| !s.is_empty());
+
+    let events = state
+        .storage
+        .get_events(filter_instance, Some(query.limit))
+        .await
+        .unwrap_or_default();
+
+    // Get unique instance IDs using SQL DISTINCT
+    let mut available_instances = state
+        .storage
+        .get_distinct_instance_ids()
+        .await
+        .unwrap_or_default();
+
+    // Ensure current instance is in the list
+    if !available_instances.contains(&state.instance_id) {
+        available_instances.insert(0, state.instance_id.clone());
+    }
+
+    let event_views: Vec<EventView> = events.into_iter().map(EventView::from_event).collect();
+
+    EventsTemplate {
+        title: "System Events".to_string(),
+        events: event_views,
+        instance_id: state.instance_id.clone(),
+        available_instances,
+        filter_instance: query.instance_id,
     }
 }
 
@@ -275,12 +467,12 @@ mod tests {
         let state = AppState {
             storage: Arc::new(storage),
             metadata_cache: Arc::new(RwLock::new(Vec::new())),
+            instance_id: "test-instance".to_string(),
         };
 
-        // 3. Call index handler
-        let query = MetricsQuery::default();
+        // 3. Call index handler (now only takes State, no Query)
         // Since we can't easily inspect IntoResponse, we just verify side effects on the cache
-        let _ = index(State(state.clone()), Query(query)).await;
+        let _ = index(State(state.clone())).await;
 
         // 4. Verify cache is populated
         let cache = state.metadata_cache.read().await;

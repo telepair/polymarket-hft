@@ -58,6 +58,23 @@ pub trait StorageBackend: Send + Sync {
 
     /// Get available metrics (source, name) pairs.
     fn get_available_metrics(&self) -> BoxFuture<'_, anyhow::Result<Vec<(String, String)>>>;
+
+    /// Store a system event.
+    fn store_event(&self, event: &model::Event) -> BoxFuture<'_, anyhow::Result<()>>;
+
+    /// Get events with optional instance ID filter.
+    ///
+    /// # Arguments
+    /// * `instance_id` - Optional filter by instance ID
+    /// * `limit` - Maximum number of events to return
+    fn get_events(
+        &self,
+        instance_id: Option<&str>,
+        limit: Option<usize>,
+    ) -> BoxFuture<'_, anyhow::Result<Vec<model::Event>>>;
+
+    /// Get distinct instance IDs from events.
+    fn get_distinct_instance_ids(&self) -> BoxFuture<'_, anyhow::Result<Vec<String>>>;
 }
 
 // ============================================================================
@@ -65,4 +82,4 @@ pub trait StorageBackend: Send + Sync {
 // ============================================================================
 
 pub use local::{LocalStorage, LocalStorageConfig};
-pub use model::{DataSource, Metric, MetricUnit};
+pub use model::{DataSource, Event, EventType, Metric, MetricUnit};

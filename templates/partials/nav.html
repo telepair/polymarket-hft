@@ -1,0 +1,62 @@
+<!-- Navigation Header Component -->
+<!-- Required variables: current_page (string: "dashboard" | "metrics" | "status" | "events") -->
+
+<header class="glass sticky top-0 z-50 border-b border-slate-800/50">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-bold bg-gradient-to-r from-primary-400 to-primary-200 bg-clip-text text-transparent">
+                    Polymarket HFT
+                </h1>
+            </div>
+            
+            <!-- Refresh Controls -->
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 text-sm text-slate-400">
+                    <svg class="w-4 h-4 text-green-400 animate-spin" style="animation-duration: 3s;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    <span>{% if current_page == "metrics" %}10s{% else %}30s{% endif %}</span>
+                </div>
+                
+                <!-- Manual Refresh Button -->
+                <button id="manual-refresh" 
+                        class="px-3 py-1.5 text-xs font-medium rounded-lg bg-primary-600 hover:bg-primary-500 text-white transition-colors flex items-center gap-1"
+                        title="Refresh now">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Refresh
+                </button>
+                
+                <span class="text-slate-500">|</span>
+                <span class="text-sm text-slate-400">Last: <span id="last-refresh-time" class="text-slate-300">-</span></span>
+            </div>
+        </div>
+        
+        <!-- Navigation Tabs -->
+        <nav class="flex gap-1 mt-4">
+            {% let is_dashboard = current_page == "dashboard" %}
+            {% let is_metrics = current_page == "metrics" %}
+            {% let is_status = current_page == "status" %}
+            {% let is_events = current_page == "events" %}
+            <a href="/" class="px-5 py-2.5 rounded-lg font-medium text-sm transition-all {% if is_dashboard %}bg-primary-500/20 text-primary-300 border border-primary-500/30{% else %}text-slate-400 hover:text-slate-200 hover:bg-slate-800{% endif %}">
+                📊 Dashboard
+            </a>
+            <a href="/metrics" class="px-5 py-2.5 rounded-lg font-medium text-sm transition-all {% if is_metrics %}bg-blue-500/20 text-blue-300 border border-blue-500/30{% else %}text-slate-400 hover:text-slate-200 hover:bg-slate-800{% endif %}">
+                📈 Metrics
+            </a>
+            <a href="/status" class="px-5 py-2.5 rounded-lg font-medium text-sm transition-all {% if is_status %}bg-green-500/20 text-green-300 border border-green-500/30{% else %}text-slate-400 hover:text-slate-200 hover:bg-slate-800{% endif %}">
+                🟢 Status
+            </a>
+            <a href="/events" class="px-5 py-2.5 rounded-lg font-medium text-sm transition-all {% if is_events %}bg-purple-500/20 text-purple-300 border border-purple-500/30{% else %}text-slate-400 hover:text-slate-200 hover:bg-slate-800{% endif %}">
+                📋 Events
+            </a>
+        </nav>
+    </div>
+</header>

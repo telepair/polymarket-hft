@@ -178,6 +178,114 @@ impl Metric {
     }
 }
 
+// =============================================================================
+// EventType
+// =============================================================================
+
+/// Event type categories for system event logging.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum EventType {
+    /// Service started.
+    ServiceStart,
+    /// Service stopped.
+    ServiceStop,
+    /// A task was scheduled.
+    TaskScheduled,
+    /// A task was executed successfully.
+    TaskExecuted,
+    /// A task failed.
+    TaskFailed,
+    /// A general error occurred.
+    Error,
+}
+
+impl std::fmt::Display for EventType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            EventType::ServiceStart => write!(f, "service_start"),
+            EventType::ServiceStop => write!(f, "service_stop"),
+            EventType::TaskScheduled => write!(f, "task_scheduled"),
+            EventType::TaskExecuted => write!(f, "task_executed"),
+            EventType::TaskFailed => write!(f, "task_failed"),
+            EventType::Error => write!(f, "error"),
+        }
+    }
+}
+
+impl std::str::FromStr for EventType {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "service_start" => Ok(EventType::ServiceStart),
+            "service_stop" => Ok(EventType::ServiceStop),
+            "task_scheduled" => Ok(EventType::TaskScheduled),
+            "task_executed" => Ok(EventType::TaskExecuted),
+            "task_failed" => Ok(EventType::TaskFailed),
+            "error" => Ok(EventType::Error),
+            _ => anyhow::bail!("Unknown event type: {}", s),
+        }
+    }
+}
+
+// =============================================================================
+// Event
+// =============================================================================
+
+/// An event represents a system event logged during operation.
+///
+/// Events are used for auditing, debugging, and monitoring service behavior.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Event {
+    /// Database ID (None for new events).
+    pub id: Option<i64>,
+
+    /// Instance ID of the service that generated this event.
+    pub instance_id: String,
+
+    /// Type of the event.
+    pub event_type: EventType,
+
+    /// Human-readable message describing the event.
+    pub message: String,
+
+    /// Optional JSON payload with additional details.
+    #[serde(default)]
+    pub payload: Option<serde_json::Value>,
+
+    /// Unix timestamp when the event occurred.
+    pub timestamp: i64,
+}
+
+impl Event {
+    /// Creates a new event with the current timestamp.
+    pub fn new(
+        instance_id: impl Into<String>,
+        event_type: EventType,
+        message: impl Into<String>,
+    ) -> Self {
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
+        Self {
+            id: None,
+            instance_id: instance_id.into(),
+            event_type,
+            message: message.into(),
+            payload: None,
+            timestamp,
+        }
+    }
+
+    /// Adds a JSON payload to the event.
+    pub fn with_payload(mut self, payload: serde_json::Value) -> Self {
+        self.payload = Some(payload);
+        self
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -4,173 +4,130 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
-    <!-- TailwindCSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: { 50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 800: '#075985', 900: '#0c4a6e' },
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- htmx -->
-    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
-    <style>
-        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .pulse-dot { animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .htmx-request .loading-indicator { display: inline-block; }
-        .loading-indicator { display: none; }
-        input:focus, select:focus { outline: none; box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.5); }
-    </style>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="/static/htmx.min.js"></script>
 </head>
-<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen text-slate-100">
-    <!-- Header -->
-    <header class="glass sticky top-0 z-50 border-b border-slate-800/50">
-        <div class="max-w-7xl mx-auto px-6 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                        </svg>
-                    </div>
-                    <h1 class="text-2xl font-bold bg-gradient-to-r from-primary-400 to-primary-200 bg-clip-text text-transparent">
-                        Polymarket HFT
-                    </h1>
-                </div>
-                <div class="flex items-center gap-2 text-sm text-slate-400">
-                    <span class="pulse-dot w-2 h-2 rounded-full bg-green-400"></span>
-                    <span>Live • Auto-refresh 10s</span>
-                    <span class="loading-indicator ml-2 text-primary-400">↻</span>
-                    <span class="text-slate-500">|</span>
-                    <span>Last refresh: <span id="last-refresh-time">-</span></span>
-                </div>
-            </div>
-            <!-- Navigation Tabs -->
-            <nav class="flex gap-1 mt-4">
-                <a href="/" class="px-5 py-2.5 rounded-lg font-medium text-sm transition-all bg-primary-500/20 text-primary-300 border border-primary-500/30">
-                    📊 Dashboard
-                </a>
-                <a href="/status" class="px-5 py-2.5 rounded-lg font-medium text-sm transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800">
-                    🟢 Status
-                </a>
-            </nav>
-        </div>
-    </header>
+<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen text-slate-100"
+      hx-get="/" 
+      hx-trigger="every 30s"
+      hx-select="main"
+      hx-target="main"
+      hx-swap="outerHTML">
+    {% let current_page = "dashboard" %}
+    {% include "partials/nav.html" %}
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-6 py-6">
-        <!-- Filter Form -->
-        <form id="filter-form" class="glass rounded-xl p-4 mb-6">
-            <div class="flex flex-wrap gap-4 items-end">
-                <!-- Time Range -->
-                <div class="flex-1 min-w-[120px]">
-                    <label class="block text-xs font-medium text-slate-400 mb-1.5">Time Range</label>
-                    <select name="time_range" 
-                            class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200"
-                            hx-get="/partials/metrics"
-                            hx-trigger="change"
-                            hx-target="#metrics-container"
-                            hx-include="#filter-form">
-                        <option value="1h" {% if filter_params.is_time_range("1h") %}selected{% endif %}>Last 1 Hour</option>
-                        <option value="6h" {% if filter_params.is_time_range("6h") %}selected{% endif %}>Last 6 Hours</option>
-                        <option value="24h" {% if filter_params.is_time_range("24h") %}selected{% endif %}>Last 24 Hours</option>
-                        <option value="7d" {% if filter_params.is_time_range("7d") %}selected{% endif %}>Last 7 Days</option>
-                        <option value="30d" {% if filter_params.is_time_range("30d") %}selected{% endif %}>Last 30 Days</option>
-                    </select>
-                </div>
-                
-                <!-- Data Source -->
-                <div class="flex-1 min-w-[150px]">
-                    <label class="block text-xs font-medium text-slate-400 mb-1.5">Data Source</label>
-                    <select name="source" 
-                            class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200"
-                            hx-get="/partials/metrics"
-                            hx-trigger="change"
-                            hx-target="#metrics-container"
-                            hx-include="#filter-form">
-                        <option value="">All Sources</option>
-                        {% for s in available_sources %}
-                        <option value="{{ s }}" {% if s.as_str() == filter_params.source %}selected{% endif %}>{{ s }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <!-- Metric Name -->
-                <div class="flex-[2] min-w-[200px]">
-                    <label class="block text-xs font-medium text-slate-400 mb-1.5">Metric Name</label>
-                    <select name="name" 
-                            class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200"
-                            hx-get="/partials/metrics"
-                            hx-trigger="change"
-                            hx-target="#metrics-container"
-                            hx-include="#filter-form">
-                        <option value="">All Names</option>
-                        {% for n in available_names %}
-                        <option value="{{ n }}" {% if n.as_str() == filter_params.name %}selected{% endif %}>{{ n }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <!-- Reset Button -->
-                <div>
-                    <button type="button" 
-                            class="px-4 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-sm text-slate-300 transition-colors"
-                            onclick="document.querySelectorAll('#filter-form input').forEach(i => i.value = ''); document.querySelector('select[name=time_range]').value = '1h'; htmx.trigger('#filter-form select', 'change');">
-                        Reset
-                    </button>
-                </div>
-            </div>
-        </form>
-
-        <!-- Metrics Table Container -->
-        <div id="metrics-container" 
-             hx-get="/partials/metrics" 
-             hx-trigger="load, every 10s"
-             hx-include="#filter-form"
-             hx-swap="innerHTML"
-             class="min-h-[200px]">
-            <!-- Initial loading skeleton -->
-            <div class="glass rounded-xl overflow-hidden">
-                <div class="animate-pulse p-6">
-                    <div class="h-4 bg-slate-700 rounded w-1/4 mb-4"></div>
-                    <div class="space-y-3">
-                        <div class="h-10 bg-slate-700 rounded"></div>
-                        <div class="h-10 bg-slate-700 rounded"></div>
-                        <div class="h-10 bg-slate-700 rounded"></div>
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Metrics Card -->
+            <a href="/metrics" class="stat-card glass rounded-xl p-6 hover:border-blue-500/50">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-400 uppercase tracking-wider">Metrics (24h)</p>
+                        <p class="text-4xl font-bold text-blue-400 mt-2">{{ total_metrics }}</p>
+                        <p class="text-xs text-slate-500 mt-1">data points collected</p>
+                    </div>
+                    <div class="w-14 h-14 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                        <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
                     </div>
                 </div>
+            </a>
+
+            <!-- Status Card -->
+            <a href="/status" class="stat-card glass rounded-xl p-6 hover:border-green-500/50">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-400 uppercase tracking-wider">Status Indicators</p>
+                        <p class="text-4xl font-bold text-green-400 mt-2">{{ total_status }}</p>
+                        <p class="text-xs text-slate-500 mt-1">unique metric types</p>
+                    </div>
+                    <div class="w-14 h-14 rounded-xl bg-green-500/20 flex items-center justify-center">
+                        <svg class="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Events Card -->
+            <a href="/events" class="stat-card glass rounded-xl p-6 hover:border-purple-500/50">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-400 uppercase tracking-wider">System Events</p>
+                        <p class="text-4xl font-bold text-purple-400 mt-2">{{ total_events }}</p>
+                        <p class="text-xs text-slate-500 mt-1">events recorded</p>
+                    </div>
+                    <div class="w-14 h-14 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                        <svg class="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Source Statistics Table -->
+        <div class="glass rounded-xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-800/50">
+                <h2 class="text-lg font-semibold text-slate-200">Data Sources Overview</h2>
+                <p class="text-sm text-slate-400 mt-1">Metrics collected in the last 24 hours by source</p>
             </div>
+            
+            {% if source_stats.is_empty() %}
+            <div class="p-12 text-center">
+                <svg class="w-16 h-16 mx-auto text-slate-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                </svg>
+                <p class="text-slate-400 text-lg">No data sources configured</p>
+                <p class="text-slate-500 text-sm mt-2">Data will appear here once metrics are collected</p>
+            </div>
+            {% else %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-800/50">
+                        <tr class="text-left text-slate-400 text-xs uppercase tracking-wider">
+                            <th class="px-6 py-3 font-medium">Source</th>
+                            <th class="px-6 py-3 font-medium text-right">Metrics (24h)</th>
+                            <th class="px-6 py-3 font-medium text-right">Unique Names</th>
+                            <th class="px-6 py-3 font-medium">Last Updated</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/50">
+                        {% for stat in source_stats %}
+                        <tr class="hover:bg-slate-800/30 transition-colors">
+                            <td class="px-6 py-4">
+                                <span class="px-3 py-1 text-sm font-medium rounded-lg bg-primary-500/20 text-primary-300 uppercase">
+                                    {{ stat.source }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <span class="text-xl font-bold text-slate-200">{{ stat.metric_count }}</span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <span class="text-slate-300">{{ stat.name_count }}</span>
+                            </td>
+                            <td class="px-6 py-4 text-slate-400 font-mono text-xs">
+                                {{ stat.last_updated }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
         </div>
     </main>
 
     <!-- Footer -->
     <footer class="border-t border-slate-800/50 mt-auto">
         <div class="max-w-7xl mx-auto px-6 py-6 text-center text-slate-500 text-sm">
-            Polymarket HFT • Metrics Dashboard
+            Polymarket HFT • Dashboard
         </div>
     </footer>
 
-    <script>
-        // Update last refresh time on page load and after htmx swaps
-        function updateRefreshTime() {
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
-            const el = document.getElementById('last-refresh-time');
-            if (el) el.textContent = timeStr;
-        }
-
-        // Update on page load
-        updateRefreshTime();
-
-        // Update after htmx swaps
-        document.body.addEventListener('htmx:afterSwap', updateRefreshTime);
-    </script>
+    {% include "partials/refresh.html" %}
 </body>
 </html>

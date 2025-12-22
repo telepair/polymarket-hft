@@ -12,7 +12,7 @@ use tokio_cron_scheduler::{Job, JobScheduler};
 
 use crate::client::DataSourceClient;
 use crate::config::{IngestionJob, Schedule, StorageConfig};
-use crate::storage::StorageBackend;
+use crate::storage::{Event, EventType, StorageBackend};
 
 /// Manages all background tasks and coordinates data collection.
 pub struct TaskManager {
@@ -21,6 +21,7 @@ pub struct TaskManager {
     storage: Arc<dyn StorageBackend>,
     metadata_cache: Arc<RwLock<Vec<(String, String)>>>,
     config: StorageConfig,
+    instance_id: String,
 }
 
 impl TaskManager {
@@ -31,6 +32,7 @@ impl TaskManager {
         storage: Arc<dyn StorageBackend>,
         metadata_cache: Arc<RwLock<Vec<(String, String)>>>,
         config: StorageConfig,
+        instance_id: String,
     ) -> Self {
         Self {
             jobs,
@@ -38,6 +40,7 @@ impl TaskManager {
             storage,
             metadata_cache,
             config,
+            instance_id,
         }
     }
 
@@ -51,6 +54,17 @@ impl TaskManager {
         for job_config in &self.jobs {
             let job = self.create_ingestion_job(job_config).await?;
             scheduler.add(job).await?;
+
+            // Record TaskScheduled event
+            let event = Event::new(
+                &self.instance_id,
+                EventType::TaskScheduled,
+                format!("Task '{}' scheduled", job_config.name),
+            );
+            if let Err(e) = self.storage.store_event(&event).await {
+                tracing::warn!(error = %e, "Failed to record task scheduled event");
+            }
+
             tracing::info!(
                 name = %job_config.name,
                 method = %job_config.method,
@@ -98,6 +112,7 @@ impl TaskManager {
         let job_name = job_config.name.clone();
         let method = job_config.method.clone();
         let params = job_config.params.clone();
+        let instance_id = self.instance_id.clone();
 
         let job = match &job_config.schedule {
             Schedule::Interval { interval_secs } => {
@@ -108,9 +123,17 @@ impl TaskManager {
                     let job_name = job_name.clone();
                     let method = method.clone();
                     let params = params.clone();
+                    let instance_id = instance_id.clone();
                     Box::pin(async move {
-                        Self::execute_ingestion_job(&job_name, &method, params, &client, &storage)
-                            .await;
+                        Self::execute_ingestion_job(
+                            &job_name,
+                            &method,
+                            params,
+                            &client,
+                            &storage,
+                            &instance_id,
+                        )
+                        .await;
                     })
                 })?
             }
@@ -122,9 +145,17 @@ impl TaskManager {
                     let job_name = job_name.clone();
                     let method = method.clone();
                     let params = params.clone();
+                    let instance_id = instance_id.clone();
                     Box::pin(async move {
-                        Self::execute_ingestion_job(&job_name, &method, params, &client, &storage)
-                            .await;
+                        Self::execute_ingestion_job(
+                            &job_name,
+                            &method,
+                            params,
+                            &client,
+                            &storage,
+                            &instance_id,
+                        )
+                        .await;
                     })
                 })?
             }
@@ -177,6 +208,7 @@ impl TaskManager {
         params: Option<serde_json::Value>,
         client: &Arc<dyn DataSourceClient>,
         storage: &Arc<dyn StorageBackend>,
+        instance_id: &str,
     ) {
         tracing::debug!(job = %job_name, method = %method, "Executing ingestion job");
 
@@ -193,6 +225,29 @@ impl TaskManager {
                         error = %e,
                         "Failed to store metrics"
                     );
+                    // Record TaskFailed event
+                    let event = Event::new(
+                        instance_id,
+                        EventType::TaskFailed,
+                        format!("Task '{}' failed to store metrics: {}", job_name, e),
+                    );
+                    if let Err(e) = storage.store_event(&event).await {
+                        tracing::debug!(error = %e, "Failed to record task failed event");
+                    }
+                } else {
+                    // Record TaskExecuted event
+                    let event = Event::new(
+                        instance_id,
+                        EventType::TaskExecuted,
+                        format!(
+                            "Task '{}' executed successfully, {} metrics",
+                            job_name,
+                            metrics.len()
+                        ),
+                    );
+                    if let Err(e) = storage.store_event(&event).await {
+                        tracing::debug!(error = %e, "Failed to record task executed event");
+                    }
                 }
             }
             Err(e) => {
@@ -201,6 +256,15 @@ impl TaskManager {
                     error = %e,
                     "Failed to fetch metrics"
                 );
+                // Record TaskFailed event
+                let event = Event::new(
+                    instance_id,
+                    EventType::TaskFailed,
+                    format!("Task '{}' failed to fetch metrics: {}", job_name, e),
+                );
+                if let Err(e) = storage.store_event(&event).await {
+                    tracing::debug!(error = %e, "Failed to record task failed event");
+                }
             }
         }
     }

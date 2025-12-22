@@ -2,6 +2,7 @@
 //!
 //! Uses `sqlx` for async database operations with WAL mode for better concurrency.
 
+use super::model::{Event, EventType};
 use crate::{DataSource, Metric, MetricUnit};
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions};
 use std::path::Path;
@@ -91,6 +92,32 @@ impl SqliteStorage {
             r#"
             CREATE INDEX IF NOT EXISTS idx_metrics_timestamp
             ON metrics(timestamp DESC)
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        // Create events table
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                instance_id TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                message TEXT NOT NULL,
+                payload TEXT,
+                timestamp INTEGER NOT NULL
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        // Create index for events
+        sqlx::query(
+            r#"
+            CREATE INDEX IF NOT EXISTS idx_events_instance_ts
+            ON events(instance_id, timestamp DESC)
             "#,
         )
         .execute(&self.pool)
@@ -252,6 +279,74 @@ impl SqliteStorage {
         }
         Ok(metrics)
     }
+
+    /// Insert a single event.
+    pub async fn insert_event(&self, event: &Event) -> anyhow::Result<()> {
+        let payload = event
+            .payload
+            .as_ref()
+            .map(serde_json::to_string)
+            .transpose()?;
+
+        sqlx::query(
+            r#"
+            INSERT INTO events (instance_id, event_type, message, payload, timestamp)
+            VALUES ($1, $2, $3, $4, $5)
+            "#,
+        )
+        .bind(&event.instance_id)
+        .bind(event.event_type.to_string())
+        .bind(&event.message)
+        .bind(payload)
+        .bind(event.timestamp)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Query events with optional instance ID filter.
+    pub async fn query_events(
+        &self,
+        instance_id: Option<&str>,
+        limit: usize,
+    ) -> anyhow::Result<Vec<Event>> {
+        use sqlx::QueryBuilder;
+
+        let mut builder: QueryBuilder<sqlx::Sqlite> = QueryBuilder::new(
+            "SELECT id, instance_id, event_type, message, payload, timestamp FROM events",
+        );
+
+        if let Some(id) = instance_id {
+            builder.push(" WHERE instance_id = ");
+            builder.push_bind(id);
+        }
+
+        builder.push(" ORDER BY timestamp DESC LIMIT ");
+        builder.push_bind(limit as i64);
+
+        let rows = builder
+            .build_query_as::<EventRow>()
+            .fetch_all(&self.pool)
+            .await?;
+
+        rows.into_iter().map(|r| r.try_into()).collect()
+    }
+
+    /// Get distinct instance IDs from events, ordered by newest first (UUID v7 is time-sortable).
+    pub async fn get_distinct_instance_ids(&self) -> anyhow::Result<Vec<String>> {
+        let rows = sqlx::query("SELECT DISTINCT instance_id FROM events ORDER BY instance_id DESC")
+            .fetch_all(&self.pool)
+            .await?;
+
+        let mut ids = Vec::new();
+        for row in rows {
+            use sqlx::Row;
+            let id: String = row.try_get("instance_id")?;
+            ids.push(id);
+        }
+        Ok(ids)
+    }
 }
 
 /// Internal row structure for SQLite query results.
@@ -290,6 +385,35 @@ impl TryFrom<MetricRow> for Metric {
             timestamp: row.timestamp,
             unit,
             labels,
+        })
+    }
+}
+
+/// Internal row structure for events SQLite query results.
+#[derive(sqlx::FromRow)]
+struct EventRow {
+    id: i64,
+    instance_id: String,
+    event_type: String,
+    message: String,
+    payload: Option<String>,
+    timestamp: i64,
+}
+
+impl TryFrom<EventRow> for Event {
+    type Error = anyhow::Error;
+
+    fn try_from(row: EventRow) -> Result<Self, Self::Error> {
+        let event_type: EventType = row.event_type.parse()?;
+        let payload = row.payload.map(|s| serde_json::from_str(&s)).transpose()?;
+
+        Ok(Event {
+            id: Some(row.id),
+            instance_id: row.instance_id,
+            event_type,
+            message: row.message,
+            payload,
+            timestamp: row.timestamp,
         })
     }
 }

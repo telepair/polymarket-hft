@@ -5,16 +5,22 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use uuid::Uuid;
 
 use crate::client::alternativeme::Client as AlternativeMeClient;
 use crate::client::http::HttpClientConfig;
 use crate::config::{AppConfig, IngestionJob, StorageBackendType, StorageConfig};
 use crate::storage::local::LocalStorage;
+use crate::storage::{Event, EventType};
 use crate::task::TaskManager;
 use crate::{LocalStorageConfig, StorageBackend};
 
 /// Run the server with the given configuration file.
 pub async fn run(config_path: PathBuf) -> anyhow::Result<()> {
+    // Generate unique instance ID for this service run
+    let instance_id = Uuid::now_v7().to_string();
+    tracing::info!(instance_id = %instance_id, "Starting service instance");
+
     tracing::info!(config = %config_path.display(), "Loading configuration");
 
     // Load configuration
@@ -61,6 +67,12 @@ pub async fn run(config_path: PathBuf) -> anyhow::Result<()> {
     let storage_config = config.storage.unwrap_or_default();
     let storage: Arc<dyn StorageBackend> = create_storage(&storage_config).await?;
 
+    // Record ServiceStart event
+    let start_event = Event::new(&instance_id, EventType::ServiceStart, "Service started");
+    if let Err(e) = storage.store_event(&start_event).await {
+        tracing::warn!(error = %e, "Failed to record service start event");
+    }
+
     // Create shared metadata cache
     let metadata_cache = Arc::new(RwLock::new(Vec::new()));
 
@@ -71,10 +83,11 @@ pub async fn run(config_path: PathBuf) -> anyhow::Result<()> {
         storage.clone(),
         metadata_cache.clone(),
         storage_config,
+        instance_id.clone(),
     );
 
-    // Create web router (uses shared metadata cache)
-    let app = crate::web::create_router(storage, metadata_cache);
+    // Create web router (uses shared metadata cache and instance ID)
+    let app = crate::web::create_router(storage.clone(), metadata_cache, instance_id.clone());
 
     let addr = format!("{}:{}", config.server.host, config.server.port);
     tracing::info!(
@@ -98,6 +111,12 @@ pub async fn run(config_path: PathBuf) -> anyhow::Result<()> {
                 tracing::error!(error = %e, "Task manager error");
             }
         }
+    }
+
+    // Record ServiceStop event
+    let stop_event = Event::new(&instance_id, EventType::ServiceStop, "Service stopped");
+    if let Err(e) = storage.store_event(&stop_event).await {
+        tracing::warn!(error = %e, "Failed to record service stop event");
     }
 
     tracing::info!("Server stopped");

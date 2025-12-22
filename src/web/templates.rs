@@ -2,8 +2,17 @@
 
 use askama::Template;
 use askama_web::WebTemplate;
+use chrono::{TimeZone, Utc};
 
 use crate::storage::Metric;
+
+/// Format a unix timestamp to UTC string with explicit UTC suffix.
+fn format_utc_time(timestamp: i64, fmt: &str) -> String {
+    Utc.timestamp_opt(timestamp, 0)
+        .single()
+        .map(|dt| format!("{} UTC", dt.format(fmt)))
+        .unwrap_or_else(|| timestamp.to_string())
+}
 
 // =============================================================================
 // Filter Parameters
@@ -28,20 +37,51 @@ impl FilterParams {
 // Templates
 // =============================================================================
 
-/// Dashboard page template.
+/// Dashboard page template - displays statistics overview.
 #[derive(Template, WebTemplate)]
 #[template(path = "dashboard.html")]
 pub struct DashboardTemplate {
+    pub title: String,
+    pub total_metrics: usize,
+    pub total_status: usize,
+    pub total_events: usize,
+    pub source_stats: Vec<SourceStat>,
+}
+
+/// Statistics for a data source.
+pub struct SourceStat {
+    pub source: String,
+    pub metric_count: usize,
+    pub name_count: usize,
+    pub last_updated: String,
+}
+
+impl Default for DashboardTemplate {
+    fn default() -> Self {
+        Self {
+            title: "Dashboard".to_string(),
+            total_metrics: 0,
+            total_status: 0,
+            total_events: 0,
+            source_stats: Vec::new(),
+        }
+    }
+}
+
+/// Metrics page template - displays metrics list with filters.
+#[derive(Template, WebTemplate)]
+#[template(path = "metrics.html")]
+pub struct MetricsTemplate {
     pub title: String,
     pub filter_params: FilterParams,
     pub available_sources: Vec<String>,
     pub available_names: Vec<String>,
 }
 
-impl Default for DashboardTemplate {
+impl Default for MetricsTemplate {
     fn default() -> Self {
         Self {
-            title: "Metrics Dashboard".to_string(),
+            title: "Metrics Explorer".to_string(),
             filter_params: FilterParams::default(),
             available_sources: Vec::new(),
             available_names: Vec::new(),
@@ -93,9 +133,7 @@ pub struct MetricView {
 
 impl From<Metric> for MetricView {
     fn from(m: Metric) -> Self {
-        let timestamp = chrono::DateTime::from_timestamp(m.timestamp, 0)
-            .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
-            .unwrap_or_else(|| m.timestamp.to_string());
+        let timestamp = format_utc_time(m.timestamp, "%Y-%m-%d %H:%M:%S");
 
         Self {
             source: m.source.to_string(),
@@ -105,6 +143,63 @@ impl From<Metric> for MetricView {
             timestamp,
             timestamp_raw: m.timestamp,
             labels: m.labels.into_iter().collect(),
+        }
+    }
+}
+
+// =============================================================================
+// Events
+// =============================================================================
+
+/// Events page template - shows system events log.
+#[derive(Template, WebTemplate)]
+#[template(path = "events.html")]
+pub struct EventsTemplate {
+    pub title: String,
+    pub events: Vec<EventView>,
+    pub instance_id: String,
+    pub available_instances: Vec<String>,
+    pub filter_instance: Option<String>,
+}
+
+/// View model for a single event.
+pub struct EventView {
+    pub id: i64,
+    pub instance_id: String,
+    pub event_type: String,
+    pub event_type_class: String,
+    pub message: String,
+    pub payload: Option<String>,
+    pub timestamp: String,
+}
+
+impl EventView {
+    /// Creates an EventView from an Event.
+    pub fn from_event(event: crate::storage::Event) -> Self {
+        let timestamp = format_utc_time(event.timestamp, "%Y-%m-%d %H:%M:%S");
+
+        let event_type_class = match event.event_type {
+            crate::storage::EventType::ServiceStart => "bg-green-500/20 text-green-300",
+            crate::storage::EventType::ServiceStop => "bg-red-500/20 text-red-300",
+            crate::storage::EventType::TaskScheduled => "bg-blue-500/20 text-blue-300",
+            crate::storage::EventType::TaskExecuted => "bg-emerald-500/20 text-emerald-300",
+            crate::storage::EventType::TaskFailed | crate::storage::EventType::Error => {
+                "bg-orange-500/20 text-orange-300"
+            }
+        };
+
+        let payload = event
+            .payload
+            .map(|p| serde_json::to_string_pretty(&p).unwrap_or_default());
+
+        Self {
+            id: event.id.unwrap_or(0),
+            instance_id: event.instance_id,
+            event_type: event.event_type.to_string(),
+            event_type_class: event_type_class.to_string(),
+            message: event.message,
+            payload,
+            timestamp,
         }
     }
 }

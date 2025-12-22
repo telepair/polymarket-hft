@@ -39,6 +39,7 @@ base64 = "0.22"
 
 # Utilities
 chrono = "0.4"
+uuid = { version = "1.0", features = ["v7"] }
 hex = "0.4"
 rand = "0.8"
 serde_yaml = "0.9"

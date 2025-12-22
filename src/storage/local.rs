@@ -117,6 +117,28 @@ impl StorageBackend for LocalStorage {
     fn get_available_metrics(&self) -> BoxFuture<'_, anyhow::Result<Vec<(String, String)>>> {
         Box::pin(async move { self.sqlite.get_available_metrics().await })
     }
+
+    fn store_event(&self, event: &super::model::Event) -> BoxFuture<'_, anyhow::Result<()>> {
+        let event = event.clone();
+        Box::pin(async move { self.sqlite.insert_event(&event).await })
+    }
+
+    fn get_events(
+        &self,
+        instance_id: Option<&str>,
+        limit: Option<usize>,
+    ) -> BoxFuture<'_, anyhow::Result<Vec<super::model::Event>>> {
+        let instance_id = instance_id.map(|s| s.to_string());
+        Box::pin(async move {
+            self.sqlite
+                .query_events(instance_id.as_deref(), limit.unwrap_or(100))
+                .await
+        })
+    }
+
+    fn get_distinct_instance_ids(&self) -> BoxFuture<'_, anyhow::Result<Vec<String>>> {
+        Box::pin(async move { self.sqlite.get_distinct_instance_ids().await })
+    }
 }
 
 /// Configuration for LocalStorage.

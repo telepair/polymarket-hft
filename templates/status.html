@@ -4,68 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
-    <!-- TailwindCSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: { 50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 800: '#075985', 900: '#0c4a6e' },
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- htmx for auto-refresh -->
-    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
-    <style>
-        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .pulse-dot { animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .status-fresh { color: #4ade80; }
-        .status-stale { color: #facc15; }
-        .status-old { color: #f87171; }
-        .metric-card.hidden-by-filter { display: none; }
-        .htmx-request .loading-indicator { display: inline-block; }
-        .loading-indicator { display: none; }
-    </style>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="/static/htmx.min.js"></script>
 </head>
-<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen text-slate-100">
-    <!-- Header -->
-    <header class="glass sticky top-0 z-50 border-b border-slate-800/50">
-        <div class="max-w-7xl mx-auto px-6 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                        </svg>
-                    </div>
-                    <h1 class="text-2xl font-bold bg-gradient-to-r from-primary-400 to-primary-200 bg-clip-text text-transparent">
-                        Polymarket HFT
-                    </h1>
-                </div>
-                <div class="flex items-center gap-2 text-sm text-slate-400">
-                    <span class="pulse-dot w-2 h-2 rounded-full bg-green-400"></span>
-                    <span>Live • Auto-refresh 30s</span>
-                    <span class="loading-indicator ml-2 text-primary-400">↻</span>
-                    <span class="text-slate-500">|</span>
-                    <span>Last refresh: <span id="last-refresh-time">-</span></span>
-                </div>
-            </div>
-            <!-- Navigation Tabs -->
-            <nav class="flex gap-1 mt-4">
-                <a href="/" class="px-5 py-2.5 rounded-lg font-medium text-sm transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800">
-                    📊 Dashboard
-                </a>
-                <a href="/status" class="px-5 py-2.5 rounded-lg font-medium text-sm transition-all bg-green-500/20 text-green-300 border border-green-500/30">
-                    🟢 Status
-                </a>
-            </nav>
-        </div>
-    </header>
+<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen text-slate-100"
+      hx-get="/status" 
+      hx-trigger="every 30s"
+      hx-select="main"
+      hx-target="main"
+      hx-swap="outerHTML">
+    {% let current_page = "status" %}
+    {% include "partials/nav.html" %}
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-6 py-6">
@@ -150,20 +99,6 @@
     </footer>
 
     <script>
-        // Update last refresh time on page load and after htmx swaps
-        function updateRefreshTime() {
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
-            const el = document.getElementById('last-refresh-time');
-            if (el) el.textContent = timeStr;
-        }
-
-        // Update on page load
-        updateRefreshTime();
-
-        // Update after htmx swaps
-        document.body.addEventListener('htmx:afterSwap', updateRefreshTime);
-
         function applyFilters() {
             const checkboxes = document.querySelectorAll('.metric-filter');
             const cards = document.querySelectorAll('.metric-card');
@@ -182,20 +117,16 @@
             cb.addEventListener('change', applyFilters);
         });
 
-        document.getElementById('select-all').addEventListener('click', () => {
+        document.getElementById('select-all')?.addEventListener('click', () => {
             document.querySelectorAll('.metric-filter').forEach(cb => cb.checked = true);
             applyFilters();
         });
 
-        document.getElementById('deselect-all').addEventListener('click', () => {
+        document.getElementById('deselect-all')?.addEventListener('click', () => {
             document.querySelectorAll('.metric-filter').forEach(cb => cb.checked = false);
             applyFilters();
         });
-
-        // Auto-refresh every 30 seconds
-        setInterval(() => {
-            window.location.reload();
-        }, 30000);
     </script>
+    {% include "partials/refresh.html" %}
 </body>
 </html>

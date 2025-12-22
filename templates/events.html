@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="/static/htmx.min.js"></script>
+</head>
+<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen text-slate-100"
+      hx-get="/events" 
+      hx-trigger="every 30s"
+      hx-include="#filter-form"
+      hx-select="main"
+      hx-target="main"
+      hx-swap="outerHTML">
+    {% let current_page = "events" %}
+    {% include "partials/nav.html" %}
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-6">
+        <!-- Filter Panel -->
+        <div class="glass rounded-xl p-4 mb-6">
+            <form id="filter-form" method="get" action="/events" class="flex items-center gap-4">
+                <label class="text-sm font-medium text-slate-300">Filter by Instance:</label>
+                <select name="instance_id" onchange="this.form.submit()" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    <option value="">All Instances</option>
+                    {% for inst in available_instances %}
+                    <option value="{{ inst }}" {% match filter_instance %}{% when Some with (f) %}{% if f == inst %}selected{% endif %}{% when None %}{% endmatch %}>
+                        {{ inst|truncate(8) }}...
+                    </option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+
+        <!-- Events Table -->
+        <div class="glass rounded-xl overflow-hidden">
+            <table class="w-full">
+                <thead class="bg-slate-800/50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Time</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Type</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Instance</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Message</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                    {% for event in events %}
+                    <tr class="hover:bg-slate-800/30 transition-colors">
+                        <td class="px-4 py-3 text-sm text-slate-400 whitespace-nowrap">
+                            {{ event.timestamp }}
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full {{ event.event_type_class }}">
+                                {{ event.event_type }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            <code class="text-primary-300">{{ event.instance_id|truncate(8) }}</code>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-slate-200">
+                            {{ event.message }}
+                            {% if event.payload.is_some() %}
+                            <details class="mt-1">
+                                <summary class="text-xs text-slate-500 cursor-pointer hover:text-slate-400">Show payload</summary>
+                                <pre class="mt-2 p-2 bg-slate-900 rounded text-xs text-slate-400 overflow-x-auto">{{ event.payload.as_ref().unwrap() }}</pre>
+                            </details>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            {% if events.is_empty() %}
+            <div class="p-12 text-center">
+                <svg class="w-16 h-16 mx-auto text-slate-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                <p class="text-slate-400 text-lg">No events recorded yet</p>
+                <p class="text-slate-500 text-sm mt-2">Events will appear here as the service runs</p>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/50 mt-auto">
+        <div class="max-w-7xl mx-auto px-6 py-6 text-center text-slate-500 text-sm">
+            Polymarket HFT • Events Log
+        </div>
+    </footer>
+
+    {% include "partials/refresh.html" %}
+</body>
+</html>

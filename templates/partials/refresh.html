@@ -1,0 +1,28 @@
+<!-- Simple refresh controls script -->
+<!-- Updates the "last refresh time" display when htmx swaps content -->
+
+<script>
+(function() {
+    // Update last refresh time display
+    function updateRefreshTime() {
+        const el = document.getElementById('last-refresh-time');
+        if (el) {
+            el.textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
+        }
+    }
+
+    // Manual refresh button triggers htmx refresh event
+    document.getElementById('manual-refresh')?.addEventListener('click', function() {
+        const target = document.querySelector('[hx-trigger*="every"]');
+        if (target) {
+            htmx.trigger(target, 'refresh');
+        } else {
+            window.location.reload();
+        }
+    });
+
+    // Update time on page load and after htmx swaps
+    updateRefreshTime();
+    document.body.addEventListener('htmx:afterSwap', updateRefreshTime);
+})();
+</script>
