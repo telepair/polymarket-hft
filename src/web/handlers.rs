@@ -14,7 +14,10 @@ use crate::storage::StorageBackend;
 use tokio::sync::RwLock;
 use tracing;
 
-use super::templates::{DashboardTemplate, FilterParams, MetricView, MetricsPartialTemplate};
+use super::templates::{
+    DashboardTemplate, FilterParams, LatestMetricView, MetricView, MetricsPartialTemplate,
+    StatusTemplate,
+};
 
 // =============================================================================
 // Router
@@ -39,6 +42,7 @@ pub fn create_router(
 
     Router::new()
         .route("/", get(index))
+        .route("/status", get(status))
         .route("/partials/metrics", get(metrics_partial))
         .route("/api/metrics/latest", get(api_metrics_latest))
         .with_state(state)
@@ -104,13 +108,16 @@ async fn index(
     // Fallback: If cache is empty, try to fetch from storage
     if available_metrics.is_empty() {
         tracing::debug!("Metadata cache empty, fetching from storage");
-        if let Ok(metrics) = state.storage.get_available_metrics().await {
-            if !metrics.is_empty() {
-                let mut cache = state.metadata_cache.write().await;
-                *cache = metrics.clone();
-                available_metrics = metrics;
-                tracing::debug!(count = available_metrics.len(), "Metadata cache updated from storage");
-            }
+        if let Ok(metrics) = state.storage.get_available_metrics().await
+            && !metrics.is_empty()
+        {
+            let mut cache = state.metadata_cache.write().await;
+            *cache = metrics.clone();
+            available_metrics = metrics;
+            tracing::debug!(
+                count = available_metrics.len(),
+                "Metadata cache updated from storage"
+            );
         }
     }
 
@@ -133,6 +140,40 @@ async fn index(
         },
         available_sources,
         available_names,
+    }
+}
+
+/// Status page - shows the latest value of each metric from cache.
+async fn status(State(state): State<AppState>) -> impl IntoResponse {
+    let now = chrono::Utc::now();
+    let available_metrics = state.metadata_cache.read().await.clone();
+
+    let mut metrics = Vec::new();
+    for (source, name) in available_metrics {
+        if let Ok(Some(metric)) = state.storage.get_latest(&source, &name).await {
+            let age_seconds = now.timestamp() - metric.timestamp;
+            let timestamp = chrono::DateTime::from_timestamp(metric.timestamp, 0)
+                .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
+                .unwrap_or_else(|| metric.timestamp.to_string());
+
+            metrics.push(LatestMetricView {
+                source: metric.source.to_string(),
+                name: metric.name,
+                value: format!("{:.4}", metric.value),
+                unit: metric.unit.to_string(),
+                timestamp,
+                age_seconds,
+            });
+        }
+    }
+
+    // Sort by source, then by name
+    metrics.sort_by(|a, b| (&a.source, &a.name).cmp(&(&b.source, &b.name)));
+
+    StatusTemplate {
+        title: "System Status".to_string(),
+        metrics,
+        last_updated: now.format("%Y-%m-%d %H:%M:%S UTC").to_string(),
     }
 }
 
@@ -221,7 +262,7 @@ mod tests {
         let storage = LocalStorage::new_in_memory(LocalStorageConfig::default())
             .await
             .unwrap();
-        
+
         let metric = Metric::new(
             DataSource::AlternativeMe,
             "test_fallback",

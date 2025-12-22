@@ -57,6 +57,25 @@ pub struct MetricsPartialTemplate {
     pub filter_params: FilterParams,
 }
 
+/// Status page template - shows latest value of each metric.
+#[derive(Template, WebTemplate)]
+#[template(path = "status.html")]
+pub struct StatusTemplate {
+    pub title: String,
+    pub metrics: Vec<LatestMetricView>,
+    pub last_updated: String,
+}
+
+/// View model for the latest metric value.
+pub struct LatestMetricView {
+    pub source: String,
+    pub name: String,
+    pub value: String,
+    pub unit: String,
+    pub timestamp: String,
+    pub age_seconds: i64,
+}
+
 // =============================================================================
 // View Models
 // =============================================================================

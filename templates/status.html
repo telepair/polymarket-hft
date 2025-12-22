@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { 50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 800: '#075985', 900: '#0c4a6e' },
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- htmx for auto-refresh -->
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <style>
+        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .pulse-dot { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .status-fresh { color: #4ade80; }
+        .status-stale { color: #facc15; }
+        .status-old { color: #f87171; }
+        .metric-card.hidden-by-filter { display: none; }
+        .htmx-request .loading-indicator { display: inline-block; }
+        .loading-indicator { display: none; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen text-slate-100">
+    <!-- Header -->
+    <header class="glass sticky top-0 z-50 border-b border-slate-800/50">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                    </div>
+                    <h1 class="text-2xl font-bold bg-gradient-to-r from-primary-400 to-primary-200 bg-clip-text text-transparent">
+                        Polymarket HFT
+                    </h1>
+                </div>
+                <div class="flex items-center gap-2 text-sm text-slate-400">
+                    <span class="pulse-dot w-2 h-2 rounded-full bg-green-400"></span>
+                    <span>Live • Auto-refresh 30s</span>
+                    <span class="loading-indicator ml-2 text-primary-400">↻</span>
+                    <span class="text-slate-500">|</span>
+                    <span>Last refresh: <span id="last-refresh-time">-</span></span>
+                </div>
+            </div>
+            <!-- Navigation Tabs -->
+            <nav class="flex gap-1 mt-4">
+                <a href="/" class="px-5 py-2.5 rounded-lg font-medium text-sm transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800">
+                    📊 Dashboard
+                </a>
+                <a href="/status" class="px-5 py-2.5 rounded-lg font-medium text-sm transition-all bg-green-500/20 text-green-300 border border-green-500/30">
+                    🟢 Status
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-6">
+        <!-- Filter Panel -->
+        <div class="glass rounded-xl p-4 mb-6">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-sm font-medium text-slate-300">Filter Metrics</h2>
+                <div class="flex gap-2">
+                    <button id="select-all" class="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors">
+                        Select All
+                    </button>
+                    <button id="deselect-all" class="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors">
+                        Deselect All
+                    </button>
+                </div>
+            </div>
+            <div id="filter-checkboxes" class="flex flex-wrap gap-3">
+                {% for metric in metrics %}
+                <label class="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg cursor-pointer transition-colors text-sm">
+                    <input type="checkbox" 
+                           class="metric-filter accent-primary-500" 
+                           data-metric-key="{{ metric.source }}_{{ metric.name }}"
+                           checked>
+                    <span class="text-slate-400">{{ metric.source }}</span>
+                    <span class="text-slate-200">{{ metric.name }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Status Cards Grid -->
+        <div id="metrics-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for metric in metrics %}
+            <div class="metric-card glass rounded-xl p-5 hover:border-primary-500/50 transition-all" 
+                 data-metric-key="{{ metric.source }}_{{ metric.name }}">
+                <div class="flex items-start justify-between mb-3">
+                    <div>
+                        <span class="text-xs font-medium px-2 py-1 rounded-full bg-slate-700 text-slate-300">
+                            {{ metric.source }}
+                        </span>
+                    </div>
+                    <div class="text-right">
+                        {% if metric.age_seconds < 300 %}
+                        <span class="status-fresh text-xs">● Fresh</span>
+                        {% elif metric.age_seconds < 3600 %}
+                        <span class="status-stale text-xs">● Stale</span>
+                        {% else %}
+                        <span class="status-old text-xs">● Old</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <h3 class="text-lg font-semibold text-slate-200 mb-2 truncate" title="{{ metric.name }}">
+                    {{ metric.name }}
+                </h3>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-3xl font-bold text-primary-400">{{ metric.value }}</span>
+                    <span class="text-sm text-slate-400">{{ metric.unit }}</span>
+                </div>
+                <div class="mt-3 text-xs text-slate-500">
+                    Updated: {{ metric.timestamp }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if metrics.is_empty() %}
+        <div class="glass rounded-xl p-12 text-center">
+            <svg class="w-16 h-16 mx-auto text-slate-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+            </svg>
+            <p class="text-slate-400 text-lg">No metrics available</p>
+            <p class="text-slate-500 text-sm mt-2">Metrics will appear here once data is collected</p>
+        </div>
+        {% endif %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/50 mt-auto">
+        <div class="max-w-7xl mx-auto px-6 py-6 text-center text-slate-500 text-sm">
+            Polymarket HFT • Status Page
+        </div>
+    </footer>
+
+    <script>
+        // Update last refresh time on page load and after htmx swaps
+        function updateRefreshTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
+            const el = document.getElementById('last-refresh-time');
+            if (el) el.textContent = timeStr;
+        }
+
+        // Update on page load
+        updateRefreshTime();
+
+        // Update after htmx swaps
+        document.body.addEventListener('htmx:afterSwap', updateRefreshTime);
+
+        function applyFilters() {
+            const checkboxes = document.querySelectorAll('.metric-filter');
+            const cards = document.querySelectorAll('.metric-card');
+            const visibleKeys = new Set();
+
+            checkboxes.forEach(cb => {
+                if (cb.checked) visibleKeys.add(cb.dataset.metricKey);
+            });
+
+            cards.forEach(card => {
+                card.classList.toggle('hidden-by-filter', !visibleKeys.has(card.dataset.metricKey));
+            });
+        }
+
+        document.querySelectorAll('.metric-filter').forEach(cb => {
+            cb.addEventListener('change', applyFilters);
+        });
+
+        document.getElementById('select-all').addEventListener('click', () => {
+            document.querySelectorAll('.metric-filter').forEach(cb => cb.checked = true);
+            applyFilters();
+        });
+
+        document.getElementById('deselect-all').addEventListener('click', () => {
+            document.querySelectorAll('.metric-filter').forEach(cb => cb.checked = false);
+            applyFilters();
+        });
+
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            window.location.reload();
+        }, 30000);
+    </script>
+</body>
+</html>
