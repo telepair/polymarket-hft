@@ -44,6 +44,7 @@ hex = "0.4"
 rand = "0.8"
 serde_yaml = "0.9"
 tokio-cron-scheduler = "0.15"
+cron = "0.15"
 
 # Storage
 sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite"] }
@@ -51,6 +52,7 @@ moka = { version = "0.12", features = ["future"] }
 
 # Web server
 axum = "0.8"
+tokio-util = "0.7"
 askama = "0.14"
 askama_web = { version = "0.14", features = ["axum-0.8"] }
 tower-http = { version = "0.6", features = ["fs", "trace"] }

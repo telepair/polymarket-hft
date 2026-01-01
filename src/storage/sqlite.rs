@@ -123,6 +123,36 @@ impl SqliteStorage {
         .execute(&self.pool)
         .await?;
 
+        // Create jobs table
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS jobs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                datasource TEXT NOT NULL,
+                method TEXT NOT NULL,
+                schedule TEXT NOT NULL,
+                params TEXT,
+                retention_days INTEGER NOT NULL DEFAULT 7,
+                enabled INTEGER NOT NULL DEFAULT 1,
+                created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+                updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        // Create index for jobs
+        sqlx::query(
+            r#"
+            CREATE INDEX IF NOT EXISTS idx_jobs_enabled
+            ON jobs(enabled)
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
         Ok(())
     }
 
@@ -218,31 +248,31 @@ impl SqliteStorage {
         end: i64,
         limit: usize,
     ) -> anyhow::Result<Vec<Metric>> {
-        // Build dynamic SQL query
-        let mut sql = String::from(
-            "SELECT source, name, value, timestamp, unit, labels FROM metrics WHERE timestamp >= ? AND timestamp <= ?",
+        use sqlx::QueryBuilder;
+
+        let mut builder: QueryBuilder<sqlx::Sqlite> = QueryBuilder::new(
+            "SELECT source, name, value, timestamp, unit, labels FROM metrics WHERE timestamp >= ",
         );
-
-        if source.is_some() {
-            sql.push_str(" AND source = ?");
-        }
-        if name.is_some() {
-            sql.push_str(" AND name = ?");
-        }
-        sql.push_str(" ORDER BY timestamp DESC LIMIT ?");
-
-        // Build and execute query with dynamic bindings
-        let mut query = sqlx::query_as::<_, MetricRow>(&sql).bind(start).bind(end);
+        builder.push_bind(start);
+        builder.push(" AND timestamp <= ");
+        builder.push_bind(end);
 
         if let Some(s) = source {
-            query = query.bind(s);
+            builder.push(" AND source = ");
+            builder.push_bind(s);
         }
         if let Some(n) = name {
-            query = query.bind(n);
+            builder.push(" AND name = ");
+            builder.push_bind(n);
         }
-        query = query.bind(limit as i64);
 
-        let rows = query.fetch_all(&self.pool).await?;
+        builder.push(" ORDER BY timestamp DESC LIMIT ");
+        builder.push_bind(limit as i64);
+
+        let rows = builder
+            .build_query_as::<MetricRow>()
+            .fetch_all(&self.pool)
+            .await?;
         rows.into_iter().map(|r| r.try_into()).collect()
     }
 
@@ -347,6 +377,113 @@ impl SqliteStorage {
         }
         Ok(ids)
     }
+
+    // =========================================================================
+    // Job Management
+    // =========================================================================
+
+    /// Insert a new job into the database.
+    ///
+    /// Returns the ID of the newly inserted job.
+    pub async fn insert_job(&self, job: &crate::config::IngestionJob) -> anyhow::Result<i64> {
+        let schedule = serde_json::to_string(&job.schedule)?;
+        let params = job.params.as_ref().map(serde_json::to_string).transpose()?;
+
+        let result = sqlx::query(
+            r#"
+            INSERT INTO jobs (name, datasource, method, schedule, params, retention_days, enabled)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            "#,
+        )
+        .bind(&job.name)
+        .bind(job.datasource.to_string())
+        .bind(&job.method)
+        .bind(&schedule)
+        .bind(params)
+        .bind(job.retention_days as i64)
+        .bind(job.enabled)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(result.last_insert_rowid())
+    }
+
+    /// Update an existing job by ID.
+    pub async fn update_job(
+        &self,
+        id: i64,
+        job: &crate::config::IngestionJob,
+    ) -> anyhow::Result<()> {
+        let schedule = serde_json::to_string(&job.schedule)?;
+        let params = job.params.as_ref().map(serde_json::to_string).transpose()?;
+
+        sqlx::query(
+            r#"
+            UPDATE jobs SET
+                name = $1,
+                datasource = $2,
+                method = $3,
+                schedule = $4,
+                params = $5,
+                retention_days = $6,
+                enabled = $7,
+                updated_at = strftime('%s', 'now')
+            WHERE id = $8
+            "#,
+        )
+        .bind(&job.name)
+        .bind(job.datasource.to_string())
+        .bind(&job.method)
+        .bind(&schedule)
+        .bind(params)
+        .bind(job.retention_days as i64)
+        .bind(job.enabled)
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Delete a job by ID.
+    pub async fn delete_job(&self, id: i64) -> anyhow::Result<()> {
+        sqlx::query("DELETE FROM jobs WHERE id = $1")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    /// Get a single job by ID.
+    pub async fn get_job(&self, id: i64) -> anyhow::Result<Option<super::model::JobRecord>> {
+        let row: Option<JobRow> = sqlx::query_as(
+            r#"
+            SELECT id, name, datasource, method, schedule, params, retention_days, enabled, created_at, updated_at
+            FROM jobs
+            WHERE id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        row.map(|r| r.try_into()).transpose()
+    }
+
+    /// List all jobs from the database.
+    pub async fn list_jobs(&self) -> anyhow::Result<Vec<super::model::JobRecord>> {
+        let rows: Vec<JobRow> = sqlx::query_as(
+            r#"
+            SELECT id, name, datasource, method, schedule, params, retention_days, enabled, created_at, updated_at
+            FROM jobs
+            ORDER BY created_at DESC
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        rows.into_iter().map(|r| r.try_into()).collect()
+    }
 }
 
 /// Internal row structure for SQLite query results.
@@ -415,6 +552,49 @@ impl TryFrom<EventRow> for Event {
             payload,
             timestamp: row.timestamp,
         })
+    }
+}
+
+/// Internal row structure for jobs SQLite query results.
+#[derive(sqlx::FromRow)]
+struct JobRow {
+    id: i64,
+    name: String,
+    datasource: String,
+    method: String,
+    schedule: String,
+    params: Option<String>,
+    retention_days: i64,
+    enabled: bool,
+    created_at: i64,
+    updated_at: i64,
+}
+
+impl TryFrom<JobRow> for super::model::JobRecord {
+    type Error = anyhow::Error;
+
+    fn try_from(row: JobRow) -> Result<Self, Self::Error> {
+        let datasource: DataSource = row.datasource.parse()?;
+        let schedule: crate::config::Schedule = serde_json::from_str(&row.schedule)?;
+        let params: Option<serde_json::Value> =
+            row.params.map(|s| serde_json::from_str(&s)).transpose()?;
+
+        let job = crate::config::IngestionJob {
+            name: row.name,
+            datasource,
+            method: row.method,
+            schedule,
+            params,
+            retention_days: row.retention_days as u32,
+            enabled: row.enabled,
+        };
+
+        Ok(super::model::JobRecord::new(
+            row.id,
+            job,
+            row.created_at,
+            row.updated_at,
+        ))
     }
 }
 

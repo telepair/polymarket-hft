@@ -383,6 +383,71 @@ polymarket clob-ws user -m "0xabc..." -o compact
 
 ---
 
+## Serve Command
+
+Start the data ingestion server with web dashboard.
+
+```bash
+polymarket serve -c <CONFIG_PATH>
+```
+
+| Option               | Description                          |
+| -------------------- | ------------------------------------ |
+| `-c, --config <PATH>` | Path to config YAML file (required) |
+
+### Web Dashboard
+
+Dashboard available at `http://localhost:8080` (configurable) with the following pages:
+
+| Route     | Description                        |
+| --------- | ---------------------------------- |
+| `/`       | Dashboard overview with statistics |
+| `/metrics`| Metrics explorer with filters      |
+| `/status` | Latest metric values               |
+| `/events` | System event log                   |
+| `/jobs`   | Job management UI                  |
+
+### Configuration
+
+See `configs/config.example.yaml` for a complete configuration example.
+
+```yaml
+server:
+  host: "127.0.0.1"
+  port: 8080
+
+storage:
+  backend: local
+  cleanup_interval_secs: 3600
+  metadata_refresh_interval_secs: 300
+  retention_days: 365
+  local:
+    db_path: "data/metrics.db"
+    cache_ttl_secs: 900
+    cache_max_capacity: 100000
+```
+
+### Job Management
+
+Jobs are managed via the Web UI at `/jobs`:
+
+- **Create**: Add new ingestion jobs with interval or cron schedule
+- **Edit**: Modify existing job configurations
+- **Delete**: Remove jobs from the system
+- **Trigger**: Manually execute a job immediately
+
+### Examples
+
+```bash
+# Start server with default config
+polymarket serve -c configs/config.yaml
+
+# Start with custom config
+polymarket serve -c /path/to/custom/config.yaml
+```
+
+---
+
 ## Output
 
 All commands output JSON format.

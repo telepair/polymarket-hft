@@ -5,11 +5,13 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 use crate::client::alternativeme::Client as AlternativeMeClient;
 use crate::client::http::HttpClientConfig;
-use crate::config::{AppConfig, IngestionJob, StorageBackendType, StorageConfig};
+use crate::config::{AppConfig, StorageBackendType, StorageConfig};
+use crate::scheduler::SchedulerHandle;
 use crate::storage::local::LocalStorage;
 use crate::storage::{Event, EventType};
 use crate::task::TaskManager;
@@ -41,27 +43,8 @@ pub async fn run(config_path: PathBuf) -> anyhow::Result<()> {
     let client = Arc::new(AlternativeMeClient::with_config(http_config));
     tracing::info!("Alternative.me client initialized");
 
-    // Load ingestion jobs
-    let jobs = if let Some(ingestion) = &config.ingestion {
-        let jobs = IngestionJob::load_from_dir(&ingestion.jobs_dir)?;
-        tracing::info!(
-            count = jobs.len(),
-            dir = %ingestion.jobs_dir.display(),
-            "Loaded ingestion jobs"
-        );
-        for job in &jobs {
-            tracing::info!(
-                name = %job.name,
-                method = %job.method,
-                retention_days = job.retention_days,
-                "  - Job registered"
-            );
-        }
-        jobs
-    } else {
-        tracing::info!("No ingestion configuration, running without jobs");
-        Vec::new()
-    };
+    // Jobs are now managed entirely via web UI and stored in database
+    tracing::info!("Jobs will be loaded from database (manage via /jobs page)");
 
     // Create storage backend
     let storage_config = config.storage.unwrap_or_default();
@@ -76,18 +59,31 @@ pub async fn run(config_path: PathBuf) -> anyhow::Result<()> {
     // Create shared metadata cache
     let metadata_cache = Arc::new(RwLock::new(Vec::new()));
 
+    // Create cancellation token for coordinated shutdown
+    let shutdown_token = CancellationToken::new();
+
+    // Create shared scheduler handle (used by both TaskManager and web handlers)
+    let scheduler =
+        SchedulerHandle::new(client.clone(), storage.clone(), instance_id.clone()).await?;
+    tracing::info!("Scheduler handle created");
+
     // Create task manager (handles ingestion, cleanup, and metadata refresh)
     let task_manager = TaskManager::new(
-        jobs,
-        client,
+        scheduler.clone(),
         storage.clone(),
         metadata_cache.clone(),
         storage_config,
-        instance_id.clone(),
+        shutdown_token.clone(),
     );
 
-    // Create web router (uses shared metadata cache and instance ID)
-    let app = crate::web::create_router(storage.clone(), metadata_cache, instance_id.clone());
+    // Create web router (uses shared scheduler for dynamic job management)
+    let app = crate::web::create_router(
+        storage.clone(),
+        metadata_cache,
+        instance_id.clone(),
+        client,
+        scheduler,
+    );
 
     let addr = format!("{}:{}", config.server.host, config.server.port);
     tracing::info!(
@@ -99,21 +95,38 @@ pub async fn run(config_path: PathBuf) -> anyhow::Result<()> {
     // Bind HTTP server
     let listener = tokio::net::TcpListener::bind(&addr).await?;
 
+    // Create graceful shutdown signal for web server
+    let server_shutdown_token = shutdown_token.clone();
+    let shutdown_signal = async move {
+        server_shutdown_token.cancelled().await;
+        tracing::info!("Web server received shutdown signal");
+    };
+
+    // Spawn signal handler task
+    let signal_token = shutdown_token.clone();
+    tokio::spawn(async move {
+        if let Ok(()) = tokio::signal::ctrl_c().await {
+            tracing::info!("Shutdown signal received (Ctrl+C)");
+            signal_token.cancel();
+        }
+    });
+
     // Run web server and task manager concurrently
-    tokio::select! {
-        result = axum::serve(listener, app) => {
-            if let Err(e) = result {
-                tracing::error!(error = %e, "Web server error");
-            }
-        }
-        result = task_manager.run() => {
-            if let Err(e) = result {
-                tracing::error!(error = %e, "Task manager error");
-            }
-        }
+    // Both will stop when the shutdown_token is cancelled
+    let (server_result, manager_result) = tokio::join!(
+        axum::serve(listener, app).with_graceful_shutdown(shutdown_signal),
+        task_manager.run()
+    );
+
+    // Log any errors from either task
+    if let Err(e) = server_result {
+        tracing::error!(error = %e, "Web server error");
+    }
+    if let Err(e) = manager_result {
+        tracing::error!(error = %e, "Task manager error");
     }
 
-    // Record ServiceStop event
+    // Record ServiceStop event - guaranteed to execute
     let stop_event = Event::new(&instance_id, EventType::ServiceStop, "Service stopped");
     if let Err(e) = storage.store_event(&stop_event).await {
         tracing::warn!(error = %e, "Failed to record service stop event");

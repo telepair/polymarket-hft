@@ -11,12 +11,15 @@
         }
     }
 
-    // Manual refresh button triggers htmx refresh event
+    // Manual refresh button triggers htmx refresh event or page reload
     document.getElementById('manual-refresh')?.addEventListener('click', function() {
-        const target = document.querySelector('[hx-trigger*="every"]');
-        if (target) {
+        // Find element with htmx polling trigger (not on body)
+        const target = document.querySelector('[hx-trigger*="every"]:not(body)');
+        if (target && target.getAttribute('hx-trigger').includes('refresh')) {
+            // Metrics page: trigger custom refresh event
             htmx.trigger(target, 'refresh');
         } else {
+            // Other pages: full page reload for simplicity
             window.location.reload();
         }
     });

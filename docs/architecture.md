@@ -140,9 +140,9 @@ Multi-source client architecture under `src/client/`. Currently implements Polym
 - WebSocket auto-reconnect with subscription recovery
 - Connection pooling (10 idle connections per host)
 
-### Ingestor Manager 🚧 IN PROGRESS
+### Ingestor Manager ✅ IMPLEMENTED
 
-Schedules and executes data collection jobs based on YAML configuration.
+Schedules and executes data collection jobs stored in the database.
 
 | Schedule Type | Description                              |
 | ------------- | ---------------------------------------- |
@@ -151,8 +151,9 @@ Schedules and executes data collection jobs based on YAML configuration.
 
 **Features:**
 
-- Dynamic job loading from YAML configuration
+- Jobs managed via Web UI (`/jobs` page) and stored in SQLite
 - Per-job retention period configuration
+- Manual job trigger via API
 - Graceful shutdown handling
 
 ### Storage Layer ✅ IMPLEMENTED
@@ -221,11 +222,18 @@ Real-time metrics visualization using modern web technologies.
 
 **Routes:**
 
-| Endpoint            | Method | Description                    |
-| ------------------- | ------ | ------------------------------ |
-| `/`                 | GET    | Dashboard HTML page            |
-| `/partials/metrics` | GET    | Metrics HTML partial (htmx)    |
-| `/api/metrics/latest` | GET  | JSON API for recent metrics    |
+| Endpoint               | Method | Description                       |
+| ---------------------- | ------ | --------------------------------- |
+| `/`                    | GET    | Dashboard overview                |
+| `/metrics`             | GET    | Metrics explorer with filters     |
+| `/status`              | GET    | Latest metric values              |
+| `/events`              | GET    | System event log                  |
+| `/jobs`                | GET    | Job management UI                 |
+| `/partials/metrics`    | GET    | Metrics HTML partial (htmx)       |
+| `/api/metrics/latest`  | GET    | JSON API for recent metrics       |
+| `/api/jobs`            | POST   | Create new job                    |
+| `/api/jobs/{id}`       | GET/PUT/DELETE | Get, update, or delete job |
+| `/api/jobs/{id}/trigger` | POST | Manually trigger job execution  |
 
 ### Policy Engine 📋 PLANNED
 
@@ -339,15 +347,14 @@ src/
 ├── config/              # ✅ Configuration management
 │   ├── settings.rs      #    App config, storage config
 │   └── job.rs           #    Ingestion job definitions
-├── ingestor/            # 🚧 Data ingestion
-│   └── manager.rs       #    Job scheduler with cron/interval support
+├── task.rs              # ✅ Task manager (job scheduling, cleanup, metadata refresh)
+├── serve.rs             # ✅ Serve command entry point
 ├── storage/             # ✅ Storage layer
 │   ├── backend.rs       #    StorageBackend trait definition
 │   ├── local.rs         #    LocalStorage (SQLite + moka cache)
 │   ├── sqlite.rs        #    SQLite backend with WAL mode
 │   ├── cache.rs         #    In-memory cache with TTL (moka)
-│   ├── model.rs         #    Metric, DataSource definitions
-│   └── archiver.rs      #    Legacy archiver trait (deprecated)
+│   └── model.rs         #    Metric, DataSource, Event, JobRecord definitions
 ├── web/                 # ✅ Web dashboard
 │   ├── handlers.rs      #    Axum HTTP handlers
 │   └── templates.rs     #    askama template definitions
@@ -380,7 +387,7 @@ templates/               # askama HTML templates
 | 1. Client Layer        | Polymarket, CMC, AlternativeMe clients  | ✅ IMPLEMENTED |
 | 2. Storage Layer       | LocalStorage (SQLite + moka)            | ✅ IMPLEMENTED |
 | 3. Web Dashboard       | Axum + htmx + TailwindCSS + askama      | ✅ IMPLEMENTED |
-| 4. Ingestor Manager    | Job scheduling, interval/cron support   | 🚧 IN PROGRESS |
+| 4. Ingestor Manager    | Job scheduling, interval/cron support   | ✅ IMPLEMENTED |
 | 5. External Storage    | Redis + TimescaleDB backend             | 📋 PLANNED     |
 | 6. Policy Engine       | state, policy DSL, evaluator            | 📋 PLANNED     |
 | 7. Execution Layer     | executor, notifications                 | 📋 PLANNED     |

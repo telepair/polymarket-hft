@@ -131,7 +131,7 @@ pub struct Metric {
     /// Numeric value of the metric.
     pub value: f64,
 
-    /// Unix timestamp when the metric was collected.
+    /// Unix timestamp in milliseconds when the metric was collected.
     pub timestamp: i64,
 
     /// Unit of the metric.
@@ -144,12 +144,12 @@ pub struct Metric {
 
 impl Metric {
     /// Creates a new metric with the given parameters.
-    /// The timestamp defaults to the current time (now).
+    /// The timestamp defaults to the current time in milliseconds.
     pub fn new(source: DataSource, name: impl Into<String>, value: f64, unit: MetricUnit) -> Self {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as i64;
+            .expect("System time before UNIX_EPOCH")
+            .as_millis() as i64;
         Self {
             name: name.into(),
             value,
@@ -198,6 +198,12 @@ pub enum EventType {
     TaskFailed,
     /// A general error occurred.
     Error,
+    /// A job was created.
+    JobCreated,
+    /// A job was updated.
+    JobUpdated,
+    /// A job was deleted.
+    JobDeleted,
 }
 
 impl std::fmt::Display for EventType {
@@ -209,6 +215,9 @@ impl std::fmt::Display for EventType {
             EventType::TaskExecuted => write!(f, "task_executed"),
             EventType::TaskFailed => write!(f, "task_failed"),
             EventType::Error => write!(f, "error"),
+            EventType::JobCreated => write!(f, "job_created"),
+            EventType::JobUpdated => write!(f, "job_updated"),
+            EventType::JobDeleted => write!(f, "job_deleted"),
         }
     }
 }
@@ -224,6 +233,9 @@ impl std::str::FromStr for EventType {
             "task_executed" => Ok(EventType::TaskExecuted),
             "task_failed" => Ok(EventType::TaskFailed),
             "error" => Ok(EventType::Error),
+            "job_created" => Ok(EventType::JobCreated),
+            "job_updated" => Ok(EventType::JobUpdated),
+            "job_deleted" => Ok(EventType::JobDeleted),
             _ => anyhow::bail!("Unknown event type: {}", s),
         }
     }
@@ -254,12 +266,12 @@ pub struct Event {
     #[serde(default)]
     pub payload: Option<serde_json::Value>,
 
-    /// Unix timestamp when the event occurred.
+    /// Unix timestamp in milliseconds when the event occurred.
     pub timestamp: i64,
 }
 
 impl Event {
-    /// Creates a new event with the current timestamp.
+    /// Creates a new event with the current timestamp in milliseconds.
     pub fn new(
         instance_id: impl Into<String>,
         event_type: EventType,
@@ -267,8 +279,8 @@ impl Event {
     ) -> Self {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as i64;
+            .expect("System time before UNIX_EPOCH")
+            .as_millis() as i64;
         Self {
             id: None,
             instance_id: instance_id.into(),
@@ -283,6 +295,42 @@ impl Event {
     pub fn with_payload(mut self, payload: serde_json::Value) -> Self {
         self.payload = Some(payload);
         self
+    }
+}
+
+// =============================================================================
+// JobRecord
+// =============================================================================
+
+use crate::config::IngestionJob;
+
+/// A job record represents a scheduled job stored in the database.
+///
+/// This includes the job configuration along with database metadata.
+#[derive(Debug, Clone)]
+pub struct JobRecord {
+    /// Database ID.
+    pub id: i64,
+
+    /// The job configuration.
+    pub job: IngestionJob,
+
+    /// Unix timestamp when the job was created.
+    pub created_at: i64,
+
+    /// Unix timestamp when the job was last updated.
+    pub updated_at: i64,
+}
+
+impl JobRecord {
+    /// Creates a new JobRecord from database values.
+    pub fn new(id: i64, job: IngestionJob, created_at: i64, updated_at: i64) -> Self {
+        Self {
+            id,
+            job,
+            created_at,
+            updated_at,
+        }
     }
 }
 

@@ -139,6 +139,36 @@ impl StorageBackend for LocalStorage {
     fn get_distinct_instance_ids(&self) -> BoxFuture<'_, anyhow::Result<Vec<String>>> {
         Box::pin(async move { self.sqlite.get_distinct_instance_ids().await })
     }
+
+    // =========================================================================
+    // Job Management
+    // =========================================================================
+
+    fn store_job(&self, job: &crate::config::IngestionJob) -> BoxFuture<'_, anyhow::Result<i64>> {
+        let job = job.clone();
+        Box::pin(async move { self.sqlite.insert_job(&job).await })
+    }
+
+    fn update_job(
+        &self,
+        id: i64,
+        job: &crate::config::IngestionJob,
+    ) -> BoxFuture<'_, anyhow::Result<()>> {
+        let job = job.clone();
+        Box::pin(async move { self.sqlite.update_job(id, &job).await })
+    }
+
+    fn delete_job(&self, id: i64) -> BoxFuture<'_, anyhow::Result<()>> {
+        Box::pin(async move { self.sqlite.delete_job(id).await })
+    }
+
+    fn get_job(&self, id: i64) -> BoxFuture<'_, anyhow::Result<Option<super::model::JobRecord>>> {
+        Box::pin(async move { self.sqlite.get_job(id).await })
+    }
+
+    fn list_jobs(&self) -> BoxFuture<'_, anyhow::Result<Vec<super::model::JobRecord>>> {
+        Box::pin(async move { self.sqlite.list_jobs().await })
+    }
 }
 
 /// Configuration for LocalStorage.

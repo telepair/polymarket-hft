@@ -1,6 +1,8 @@
 # Serve command configuration
 #
 # This is an example configuration file for the `polymarket serve` command.
+#
+# Jobs are managed via the Web UI at /jobs and stored in the database.
 
 # Server configuration
 server:
@@ -18,16 +20,14 @@ datasources:
   # alternativeme:
   #   timeout_secs: 60
 
-# Ingestion configuration
-ingestion:
-  jobs_dir: "./configs/jobs"
-
 # Storage configuration
 storage:
   # Backend type: 'local' (SQLite + memory cache) or 'external' (future: Redis + TimescaleDB)
   backend: local
   # Cleanup interval in seconds (default: 3600 = 1 hour)
   cleanup_interval_secs: 3600
+  # Metadata refresh interval in seconds (default: 300 = 5 minutes)
+  metadata_refresh_interval_secs: 300
   # Global data retention period in days (default: 365 days = 1 year)
   # This is the maximum retention time used for cleanup
   retention_days: 365
@@ -38,5 +38,5 @@ storage:
     db_path: "data/metrics.db"
     # Cache TTL in seconds (default: 900 = 15 minutes)
     cache_ttl_secs: 900
-    # Maximum number of entries in cache (default: 10000)
-    cache_max_capacity: 10000
+    # Maximum number of entries in cache (default: 100000)
+    cache_max_capacity: 100000

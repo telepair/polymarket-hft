@@ -75,6 +75,31 @@ pub trait StorageBackend: Send + Sync {
 
     /// Get distinct instance IDs from events.
     fn get_distinct_instance_ids(&self) -> BoxFuture<'_, anyhow::Result<Vec<String>>>;
+
+    // =========================================================================
+    // Job Management
+    // =========================================================================
+
+    /// Store a new job in the database.
+    ///
+    /// Returns the ID of the newly created job.
+    fn store_job(&self, job: &crate::config::IngestionJob) -> BoxFuture<'_, anyhow::Result<i64>>;
+
+    /// Update an existing job by ID.
+    fn update_job(
+        &self,
+        id: i64,
+        job: &crate::config::IngestionJob,
+    ) -> BoxFuture<'_, anyhow::Result<()>>;
+
+    /// Delete a job by ID.
+    fn delete_job(&self, id: i64) -> BoxFuture<'_, anyhow::Result<()>>;
+
+    /// Get a job by ID.
+    fn get_job(&self, id: i64) -> BoxFuture<'_, anyhow::Result<Option<model::JobRecord>>>;
+
+    /// List all jobs from the database.
+    fn list_jobs(&self) -> BoxFuture<'_, anyhow::Result<Vec<model::JobRecord>>>;
 }
 
 // ============================================================================
@@ -82,4 +107,4 @@ pub trait StorageBackend: Send + Sync {
 // ============================================================================
 
 pub use local::{LocalStorage, LocalStorageConfig};
-pub use model::{DataSource, Event, EventType, Metric, MetricUnit};
+pub use model::{DataSource, Event, EventType, JobRecord, Metric, MetricUnit};

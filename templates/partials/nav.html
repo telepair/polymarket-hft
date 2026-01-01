@@ -45,6 +45,7 @@
             {% let is_metrics = current_page == "metrics" %}
             {% let is_status = current_page == "status" %}
             {% let is_events = current_page == "events" %}
+            {% let is_jobs = current_page == "jobs" %}
             <a href="/" class="px-5 py-2.5 rounded-lg font-medium text-sm transition-all {% if is_dashboard %}bg-primary-500/20 text-primary-300 border border-primary-500/30{% else %}text-slate-400 hover:text-slate-200 hover:bg-slate-800{% endif %}">
                 📊 Dashboard
             </a>
@@ -57,6 +58,10 @@
             <a href="/events" class="px-5 py-2.5 rounded-lg font-medium text-sm transition-all {% if is_events %}bg-purple-500/20 text-purple-300 border border-purple-500/30{% else %}text-slate-400 hover:text-slate-200 hover:bg-slate-800{% endif %}">
                 📋 Events
             </a>
+            <a href="/jobs" class="px-5 py-2.5 rounded-lg font-medium text-sm transition-all {% if is_jobs %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% else %}text-slate-400 hover:text-slate-200 hover:bg-slate-800{% endif %}">
+                ⚙️ Jobs
+            </a>
         </nav>
     </div>
 </header>
+

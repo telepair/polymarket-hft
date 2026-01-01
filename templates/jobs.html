@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="/static/htmx.min.js"></script>
+</head>
+<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen text-slate-100"
+      hx-get="/jobs" 
+      hx-trigger="every 30s, refreshJobs from:body"
+      hx-select="main"
+      hx-target="main"
+      hx-swap="outerHTML">
+    {% let current_page = "jobs" %}
+    {% include "partials/nav.html" %}
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-6">
+        <!-- Header with Create Button -->
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-200">Scheduled Jobs</h2>
+                <p class="text-sm text-slate-400 mt-1">Manage data ingestion jobs</p>
+            </div>
+            <button onclick="document.getElementById('create-modal').classList.remove('hidden')"
+                    class="px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Create Job
+            </button>
+        </div>
+
+        <!-- Jobs Table -->
+        <div class="glass rounded-xl overflow-hidden">
+            <table class="w-full">
+                <thead class="bg-slate-800/50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Name</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Source</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Method</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Schedule</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                    {% for job in jobs %}
+                    <tr class="hover:bg-slate-800/30 transition-colors">
+                        <td class="px-4 py-3">
+                            <div class="flex flex-col">
+                                <span class="font-medium text-slate-200">{{ job.name }}</span>
+                                <span class="text-xs text-slate-500">ID: {{ job.id }}</span>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300 uppercase">
+                                {{ job.datasource }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-slate-300">
+                            {{ job.method }}
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs px-2 py-0.5 rounded bg-slate-700 text-slate-300">{{ job.schedule_type }}</span>
+                                <code class="text-sm text-slate-400">{{ job.schedule }}</code>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if job.enabled %}
+                            <span class="flex items-center gap-1.5 text-green-400 text-sm">
+                                <span class="w-2 h-2 rounded-full bg-green-400"></span>
+                                Enabled
+                            </span>
+                            {% else %}
+                            <span class="flex items-center gap-1.5 text-slate-500 text-sm">
+                                <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+                                Disabled
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-2">
+                                <button hx-post="/api/jobs/{{ job.id }}/trigger"
+                                        hx-swap="none"
+                                        class="p-1.5 text-slate-400 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors"
+                                        title="Run Now">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </button>
+                                <button onclick="editJob({{ job.id }})"
+                                        class="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                                        title="Edit">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                    </svg>
+                                </button>
+                                <button hx-delete="/api/jobs/{{ job.id }}"
+                                        hx-confirm="Are you sure you want to delete job '{{ job.name }}'?"
+                                        hx-target="closest tr"
+                                        hx-swap="outerHTML"
+                                        class="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                        title="Delete">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            {% if jobs.is_empty() %}
+            <div class="p-12 text-center">
+                <svg class="w-16 h-16 mx-auto text-slate-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p class="text-slate-400 text-lg">No jobs configured</p>
+                <p class="text-slate-500 text-sm mt-2">Create a job to start collecting data</p>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- Create Job Modal -->
+    <div id="create-modal" 
+         class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center"
+         hx-trigger="jobCreated from:body"
+         hx-on:job-created="this.classList.add('hidden'); document.getElementById('job-form').reset(); htmx.trigger('body', 'refreshJobs');">
+        <div class="glass rounded-xl p-6 w-full max-w-lg mx-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-slate-200">Create New Job</h3>
+                <button onclick="document.getElementById('create-modal').classList.add('hidden')"
+                        class="text-slate-400 hover:text-slate-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            
+            {% include "partials/job_form.html" %}
+            
+        </div>
+    </div>
+
+    <!-- Edit Job Modal -->
+    <div id="edit-modal" 
+         class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center"
+         hx-trigger="jobUpdated from:body"
+         hx-on:job-updated="this.classList.add('hidden'); htmx.trigger('body', 'refreshJobs');">
+        <div class="glass rounded-xl p-6 w-full max-w-lg mx-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-slate-200">Edit Job</h3>
+                <button onclick="document.getElementById('edit-modal').classList.add('hidden')"
+                        class="text-slate-400 hover:text-slate-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="edit-job-form" class="space-y-4">
+                <input type="hidden" name="job_id" id="edit-job-id">
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Job Name</label>
+                    <input type="text" name="name" id="edit-name" required
+                           class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-primary-500"
+                           placeholder="my_job">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Data Source</label>
+                        <select name="datasource" id="edit-datasource" required
+                                onchange="updateEditMethodOptions()"
+                                class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200">
+                            {% for ds in available_datasources %}
+                            <option value="{{ ds }}">{{ ds }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Method</label>
+                        <select name="method" id="edit-method" required
+                                onchange="updateEditParamsInputs()"
+                                class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200">
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Schedule Type</label>
+                        <select name="schedule_type" id="edit-schedule-type"
+                                onchange="toggleEditScheduleInput()"
+                                class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200">
+                            <option value="interval">Interval (seconds)</option>
+                            <option value="cron">Cron Expression</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Schedule Value</label>
+                        <input type="text" name="schedule_value" id="edit-schedule-value" required
+                               class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200"
+                               placeholder="60">
+                    </div>
+                </div>
+                <div id="edit-params-container">
+                    <!-- Dynamic params inputs will be inserted here -->
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Retention Days</label>
+                        <input type="number" name="retention_days" id="edit-retention-days" min="1" max="365"
+                               class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200">
+                    </div>
+                    <div class="flex items-end pb-2">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" name="enabled" id="edit-enabled" value="true" class="accent-primary-500 w-4 h-4">
+                            <span class="text-sm text-slate-300">Enabled</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="edit-error" class="hidden p-3 mb-4 text-sm text-red-200 bg-red-500/20 rounded-lg border border-red-500/30"></div>
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                    <button type="button" onclick="document.getElementById('edit-modal').classList.add('hidden')"
+                            class="px-4 py-2 text-sm text-slate-400 hover:text-slate-200">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg text-sm font-medium">
+                        Update Job
+                    </button>
+                </div>
+            </form>
+            
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/50 mt-auto">
+        <div class="max-w-7xl mx-auto px-6 py-6 text-center text-slate-500 text-sm">
+            Polymarket HFT • Job Management
+        </div>
+    </footer>
+
+    <script>
+        // Methods mapping from server (with params metadata)
+        const methodsMap = {{ methods_json|safe }};
+
+        function toggleScheduleInput() {
+            const type = document.getElementById('schedule_type').value;
+            const input = document.getElementById('schedule_value');
+            if (type === 'interval') {
+                input.placeholder = '60';
+            } else {
+                input.placeholder = '0 * * * *';
+            }
+        }
+
+        function toggleEditScheduleInput() {
+            const type = document.getElementById('edit-schedule-type').value;
+            const input = document.getElementById('edit-schedule-value');
+            if (type === 'interval') {
+                input.placeholder = '60';
+            } else {
+                input.placeholder = '0 * * * *';
+            }
+        }
+
+        function updateEditMethodOptions() {
+            const datasource = document.getElementById('edit-datasource').value;
+            const methodSelect = document.getElementById('edit-method');
+            const methods = methodsMap[datasource] || {};
+            
+            methodSelect.innerHTML = '';
+            Object.keys(methods).forEach(function(method) {
+                const option = document.createElement('option');
+                option.value = method;
+                option.textContent = method;
+                methodSelect.appendChild(option);
+            });
+            
+            updateEditParamsInputs();
+        }
+
+        function updateEditParamsInputs() {
+            const datasource = document.getElementById('edit-datasource').value;
+            const method = document.getElementById('edit-method').value;
+            const container = document.getElementById('edit-params-container');
+            
+            const methodMeta = methodsMap[datasource]?.[method];
+            const params = methodMeta?.params || [];
+            
+            if (params.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+            
+            let html = '<div class="space-y-3"><label class="block text-sm font-medium text-slate-400 mb-1">Parameters</label>';
+            params.forEach(function(param) {
+                const requiredBadge = param.required ? '<span class="text-red-400 ml-1">*</span>' : '';
+                html += `
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1">${param.name}${requiredBadge}</label>
+                        <input type="text" name="param_${param.name}" id="edit-param-${param.name}"
+                               ${param.required ? 'required' : ''}
+                               class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200"
+                               placeholder="${param.description}">
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        async function editJob(id) {
+            try {
+                const response = await fetch('/api/jobs/' + id);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch job');
+                }
+                const job = await response.json();
+                
+                // Populate form fields
+                document.getElementById('edit-job-id').value = job.id;
+                document.getElementById('edit-name').value = job.name;
+                document.getElementById('edit-datasource').value = job.datasource;
+                
+                // Update method options first
+                updateEditMethodOptions();
+                document.getElementById('edit-method').value = job.method;
+                
+                document.getElementById('edit-schedule-type').value = job.schedule_type;
+                document.getElementById('edit-schedule-value').value = job.schedule_value;
+                document.getElementById('edit-retention-days').value = job.retention_days;
+                document.getElementById('edit-enabled').checked = job.enabled;
+                
+                // Update params inputs and populate values
+                updateEditParamsInputs();
+                if (job.params) {
+                    try {
+                        const params = JSON.parse(job.params);
+                        Object.keys(params).forEach(function(key) {
+                            const input = document.getElementById('edit-param-' + key);
+                            if (input) {
+                                input.value = params[key];
+                            }
+                        });
+                    } catch (e) {
+                        console.error('Failed to parse params:', e);
+                    }
+                }
+                
+                // Show modal
+                document.getElementById('edit-modal').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading job:', error);
+                alert('Failed to load job data: ' + error.message);
+            }
+        }
+
+        // Handle edit form submission
+        document.getElementById('edit-job-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const jobId = document.getElementById('edit-job-id').value;
+            const formData = new FormData(this);
+            
+            // Collect params into JSON
+            const params = {};
+            for (const [key, value] of formData.entries()) {
+                if (key.startsWith('param_') && value) {
+                    params[key.replace('param_', '')] = value;
+                }
+            }
+            
+            // Build form data for PUT request
+            const data = new URLSearchParams();
+            data.append('name', formData.get('name'));
+            data.append('datasource', formData.get('datasource'));
+            data.append('method', formData.get('method'));
+            data.append('schedule_type', formData.get('schedule_type'));
+            data.append('schedule_value', formData.get('schedule_value'));
+            data.append('retention_days', formData.get('retention_days'));
+            if (formData.get('enabled')) {
+                data.append('enabled', 'true');
+            }
+            if (Object.keys(params).length > 0) {
+                data.append('params', JSON.stringify(params));
+            }
+            
+            try {
+                const response = await fetch('/api/jobs/' + jobId, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: data.toString()
+                });
+                
+                if (response.ok) {
+                    document.getElementById('edit-modal').classList.add('hidden');
+                    htmx.trigger('body', 'refreshJobs');
+                } else {
+                    const text = await response.text();
+                    document.getElementById('edit-error').textContent = text || 'Failed to update job';
+                    document.getElementById('edit-error').classList.remove('hidden');
+                }
+            } catch (error) {
+                document.getElementById('edit-error').textContent = 'Network error: ' + error.message;
+                document.getElementById('edit-error').classList.remove('hidden');
+            }
+        });
+    </script>
+
+    {% include "partials/refresh.html" %}
+</body>
+</html>
+

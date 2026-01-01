@@ -28,12 +28,14 @@
 pub mod client;
 pub mod config;
 pub mod error;
+pub mod scheduler;
 pub mod serve;
 pub mod storage;
 pub mod task;
 pub mod web;
 
 pub use error::{PolymarketError, Result};
+pub use scheduler::SchedulerHandle;
 pub use storage::{
     DataSource, LocalStorage, LocalStorageConfig, Metric, MetricUnit, StorageBackend,
 };
